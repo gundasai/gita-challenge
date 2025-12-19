@@ -3,13 +3,13 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyC6n7GJb1ax_1jCVzf7N8CnMvzJJABEDwo",
-  authDomain: "gita-wisdom-b2990.firebaseapp.com",
-  projectId: "gita-wisdom-b2990",
-  storageBucket: "gita-wisdom-b2990.firebasestorage.app",
-  messagingSenderId: "705249126390",
-  appId: "1:705249126390:web:d3d3516a5693cbaef389d7",
-  measurementId: "G-3CFJT7QK8M"
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
 // Initialize Firebase
