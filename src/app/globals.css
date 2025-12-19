@@ -1,26 +1,38 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Enforce Dark Theme layout by default to match "Modern Spiritual" aesthetic */
+  --background: #1a1a1a;
+  --foreground: #ededed;
+  /* Brighter Saffron for better visibility */
+  --saffron: #FF9F00;
+  --cream: #FFFDD0;
+  /* Dark charcoal for card backgrounds */
+  --charcoal: #2D3748;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-saffron: var(--saffron);
+  --color-cream: var(--cream);
+  --color-charcoal: var(--charcoal);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+/* Remove media query to force consistency */
+/* @media (prefers-color-scheme: dark) { ... } */
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  overflow-x: hidden;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
 }

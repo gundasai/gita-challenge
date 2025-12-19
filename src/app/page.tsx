@@ -1,65 +1,147 @@
-import Image from "next/image";
+"use client";
+
+import { useAuth } from "@/context/AuthContext";
+import DashboardGrid from "@/components/DashboardGrid";
+import Link from "next/link";
+import { motion } from "framer-motion";
+import { BookOpen, PlayCircle, Award, ArrowRight } from "lucide-react";
+import { useEffect, useState } from "react";
+import { doc, getDoc, collection, getDocs } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 export default function Home() {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+  const { user, userData, loading } = useAuth(); // userData now comes from context
+  const [daysData, setDaysData] = useState<any[]>([]);
+
+  useEffect(() => {
+    async function fetchData() {
+      if (user) {
+        try {
+          // Fetch Days Data (for unlock dates)
+          const daysCol = collection(db, "days");
+          const daysSnap = await getDocs(daysCol);
+          const days = daysSnap.docs.map(doc => ({ ...doc.data(), id: parseInt(doc.id.replace('day_', '')) }));
+          setDaysData(days);
+        } catch (error) {
+          console.error("Error fetching data:", error);
+        }
+      }
+    }
+    fetchData();
+  }, [user]);
+
+  if (user) {
+    const currentDay = userData?.currentDay || 1;
+    const daysCompleted = userData?.daysCompleted || [];
+    // Convert daysCompleted array of IDs to boolean array for grid
+    const daysCompletedBool = Array(21).fill(false).map((_, i) => daysCompleted.includes(i + 1));
+    const completedCount = daysCompleted.length;
+
+    return (
+      <main className="min-h-screen bg-[var(--background)] p-6 sm:p-12">
+        <div className="mx-auto max-w-7xl space-y-8">
+          <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-[var(--saffron)]">My Journey</h1>
+              <p className="text-gray-400">Welcome back, {user.displayName?.split(" ")[0]}</p>
+            </div>
+            <div className="flex items-center gap-4 rounded-xl bg-white/5 p-4 border border-white/10">
+              <div className="text-center">
+                <p className="text-xs text-gray-500">Current Streak</p>
+                <p className="text-xl font-bold text-[var(--saffron)]">{userData?.streak || 0} Days</p>
+              </div>
+              <div className="h-8 w-px bg-white/10"></div>
+              <div className="text-center">
+                <p className="text-xs text-gray-500">Completed</p>
+                <p className="text-xl font-bold text-[var(--cream)]">{completedCount}/21</p>
+              </div>
+            </div>
+          </header>
+
+          <DashboardGrid currentDay={currentDay} daysCompleted={daysCompletedBool} daysData={daysData} />
         </div>
       </main>
+    );
+  }
+
+  return (
+    <div className="bg-[var(--background)] text-[var(--foreground)]">
+      {/* Hero Section */}
+      <section className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-4 text-center">
+        <div className="absolute inset-0 z-0 bg-radial-gradient from-[var(--saffron)]/10 to-transparent opacity-50"></div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+          className="z-10 max-w-4xl space-y-6"
+        >
+          <h1 className="bg-linear-to-b from-[var(--saffron)] to-[var(--cream)] bg-clip-text text-5xl font-extrabold text-transparent sm:text-7xl">
+            21 Day Gita Challenge
+          </h1>
+          <p className="mx-auto max-w-2xl text-lg text-gray-400 sm:text-xl">
+            Unlock timeless wisdom. Transform your life. Join thousands of seekers on a 21-day spiritual journey through the Bhagavad Gita.
+          </p>
+
+          <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+            <Link
+              href="/signup"
+              className="group flex items-center gap-2 rounded-full bg-[var(--saffron)] px-8 py-4 text-lg font-bold text-white transition hover:brightness-110"
+            >
+              Start Your Journey
+              <ArrowRight className="transition-transform group-hover:translate-x-1" />
+            </Link>
+            <Link
+              href="#learn-more"
+              className="rounded-full border border-white/10 bg-white/5 px-8 py-4 text-lg font-medium text-white transition hover:bg-white/10"
+            >
+              Learn More
+            </Link>
+          </div>
+        </motion.div>
+      </section>
+
+      {/* Features Grid */}
+      <section id="learn-more" className="py-24 px-4">
+        <div className="mx-auto max-w-7xl">
+          <h2 className="mb-16 text-center text-3xl font-bold text-[var(--cream)] sm:text-4xl">
+            What You Will Learn
+          </h2>
+
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
+            <FeatureCard
+              icon={<PlayCircle size={32} className="text-[var(--saffron)]" />}
+              title="Daily Wisdom"
+              description="Watch curated video content explaining core concepts of the Gita in a modern context."
+            />
+            <FeatureCard
+              icon={<BookOpen size={32} className="text-[var(--saffron)]" />}
+              title="Interactive Quizzes"
+              description="Test your understanding with daily quizzes that unlock the next step in your journey."
+            />
+            <FeatureCard
+              icon={<Award size={32} className="text-[var(--saffron)]" />}
+              title="Earn Certification"
+              description="Complete the 21-day challenge and receive a digital certificate of completion."
+            />
+          </div>
+        </div>
+      </section>
     </div>
+  );
+}
+
+function FeatureCard({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
+  return (
+    <motion.div
+      whileHover={{ y: -5 }}
+      className="rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur-sm transition-colors hover:border-[var(--saffron)]/30"
+    >
+      <div className="mb-4 inline-block rounded-xl bg-black/30 p-3">
+        {icon}
+      </div>
+      <h3 className="mb-3 text-xl font-bold text-[var(--cream)]">{title}</h3>
+      <p className="text-gray-400">{description}</p>
+    </motion.div>
   );
 }
