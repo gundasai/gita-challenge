@@ -128,24 +128,24 @@ export default function AdminDashboard() {
     if (loading || userRole !== "admin") return <div className="p-8 text-center text-white">Loading Admin Panel...</div>;
 
     return (
-        <div className="min-h-screen bg-[var(--background)] p-8 text-[var(--foreground)]">
-            <header className="mb-8 flex items-center justify-between">
-                <h1 className="text-3xl font-bold text-[var(--saffron)]">Admin Dashboard</h1>
-                <div className="flex gap-4">
+        <div className="min-h-screen bg-[var(--background)] p-4 sm:p-8 text-[var(--foreground)]">
+            <header className="mb-6 sm:mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <h1 className="text-2xl sm:text-3xl font-bold text-[var(--saffron)]">Admin Dashboard</h1>
+                <div className="flex gap-2 sm:gap-4 w-full sm:w-auto">
                     <button
                         onClick={() => setActiveTab("content")}
-                        className={`rounded px-4 py-2 ${activeTab === 'content' ? 'bg-[var(--saffron)] text-white' : 'bg-gray-800'}`}
+                        className={`flex-1 sm:flex-none rounded px-3 sm:px-4 py-2 text-sm ${activeTab === 'content' ? 'bg-[var(--saffron)] text-white' : 'bg-gray-800'}`}
                     >
-                        Manage Content
+                        Content
                     </button>
                     <button
                         onClick={() => setActiveTab("admins")}
-                        className={`rounded-lg px-4 py-2 text-sm font-medium transition ${activeTab === "admins"
+                        className={`flex-1 sm:flex-none rounded-lg px-3 sm:px-4 py-2 text-sm font-medium transition ${activeTab === "admins"
                             ? "bg-[var(--saffron)] text-white"
                             : "bg-white/5 text-gray-400 hover:bg-white/10"
                             }`}
                     >
-                        Manage Admins & Users
+                        Users
                     </button>
                 </div>
             </header>

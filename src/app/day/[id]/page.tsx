@@ -164,7 +164,7 @@ export default function DayPage() {
                         ) : quizCompleted ? (
                             dayData.id === 21 ? (
                                 // Special completion screen for Day 21
-                                <div className="relative overflow-hidden rounded-2xl border-2 border-yellow-500/50 bg-gradient-to-br from-yellow-500/20 via-orange-500/20 to-red-500/20 p-12 text-center backdrop-blur-sm">
+                                <div className="relative overflow-hidden rounded-2xl border-2 border-yellow-500/50 bg-gradient-to-br from-yellow-500/20 via-orange-500/20 to-red-500/20 p-6 sm:p-12 text-center backdrop-blur-sm">
                                     {/* Animated background effect */}
                                     <div className="absolute inset-0 overflow-hidden">
                                         <div className="absolute -top-10 -left-10 h-40 w-40 animate-pulse rounded-full bg-yellow-500/30 blur-3xl"></div>
@@ -173,30 +173,30 @@ export default function DayPage() {
 
                                     {/* Content */}
                                     <div className="relative z-10">
-                                        <div className="mb-6 text-6xl animate-bounce">🎉</div>
-                                        <h2 className="mb-4 text-4xl font-bold text-yellow-300 animate-pulse">
+                                        <div className="mb-4 sm:mb-6 text-5xl sm:text-6xl animate-bounce">🎉</div>
+                                        <h2 className="mb-3 sm:mb-4 text-2xl sm:text-4xl font-bold text-yellow-300 animate-pulse leading-tight">
                                             Congratulations {user?.displayName || 'Seeker'}!
                                         </h2>
-                                        <p className="mb-6 text-2xl font-semibold text-white">
+                                        <p className="mb-4 sm:mb-6 text-lg sm:text-2xl font-semibold text-white px-2">
                                             You have completed the 21-Day Gita Challenge!
                                         </p>
-                                        <p className="mb-4 text-3xl font-bold text-[var(--saffron)]">
+                                        <p className="mb-3 sm:mb-4 text-2xl sm:text-3xl font-bold text-[var(--saffron)]">
                                             Final Score: {quizResult.score} / {quizResult.maxScore}
                                         </p>
-                                        <p className="mb-8 text-lg text-gray-200 max-w-2xl mx-auto">
+                                        <p className="mb-6 sm:mb-8 text-sm sm:text-lg text-gray-200 max-w-2xl mx-auto px-4">
                                             You have embarked on a transformative journey through the timeless wisdom of the Bhagavad Gita.
                                             May this knowledge illuminate your path forward. 🙏
                                         </p>
-                                        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                                        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center px-4">
                                             <Link
                                                 href="/"
-                                                className="rounded-full bg-gradient-to-r from-yellow-500 to-orange-500 px-8 py-3 font-bold text-white transition hover:brightness-110 shadow-lg"
+                                                className="w-full sm:w-auto rounded-full bg-gradient-to-r from-yellow-500 to-orange-500 px-6 sm:px-8 py-3 font-bold text-white transition hover:brightness-110 shadow-lg"
                                             >
                                                 View Your Achievement
                                             </Link>
                                             <Link
                                                 href="/leaderboard"
-                                                className="rounded-full bg-white/10 px-8 py-3 font-medium text-white transition hover:bg-white/20"
+                                                className="w-full sm:w-auto rounded-full bg-white/10 px-6 sm:px-8 py-3 font-medium text-white transition hover:bg-white/20"
                                             >
                                                 Check Leaderboard
                                             </Link>
