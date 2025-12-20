@@ -61,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const userSnap = await getDoc(userRef);
 
         if (!userSnap.exists()) {
-            const role = user.email === "admin@gita.com" ? "admin" : "user";
+            const role = user.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL ? "admin" : "user";
             await setDoc(userRef, {
                 uid: user.uid,
                 email: user.email,

@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import Quiz from "@/components/Quiz";
 import { Lock, ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { doc, updateDoc, arrayUnion, serverTimestamp, increment, getDoc } from "firebase/firestore";
+import { doc, updateDoc, arrayUnion, serverTimestamp, increment, getDoc, setDoc as firestoreSetDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { ReactNode } from 'react';
 
@@ -79,7 +79,7 @@ export default function DayPage() {
             try {
                 const userRef = doc(db, "users", user.uid);
                 // Use setDoc with merge to ensure quizScores map is created if it doesn't exist
-                await setDoc(userRef, {
+                await firestoreSetDoc(userRef, {
                     currentDay: dayData.id + 1, // Unlock next day
                     daysCompleted: arrayUnion(dayData.id),
                     quizScores: {
@@ -157,22 +157,66 @@ export default function DayPage() {
                                         onClick={() => setQuizStarted(true)}
                                         className="rounded-full bg-[var(--saffron)] px-8 py-3 text-lg font-bold text-white transition hover:brightness-110"
                                     >
-                                        Take Quiz to Unlock Day {dayData.id + 1}
+                                        {dayData.id === 21 ? "Take Quiz and Complete the 21 Day Challenge" : `Take Quiz to Unlock Day ${dayData.id + 1}`}
                                     </button>
                                 )}
                             </div>
                         ) : quizCompleted ? (
-                            <div className="rounded-2xl border border-green-500/20 bg-green-500/10 p-8 text-center backdrop-blur-sm">
-                                <h2 className="mb-2 text-2xl font-bold text-green-400">Day Completed!</h2>
-                                <p className="mb-4 text-3xl font-bold text-[var(--saffron)]">Score: {quizResult.score} / {quizResult.maxScore}</p>
-                                <p className="mb-6 text-gray-300">You have successfully unlocked the next step of your journey.</p>
-                                <Link
-                                    href="/"
-                                    className="rounded-full bg-white/10 px-8 py-3 font-medium text-white transition hover:bg-white/20"
-                                >
-                                    Return to Dashboard
-                                </Link>
-                            </div>
+                            dayData.id === 21 ? (
+                                // Special completion screen for Day 21
+                                <div className="relative overflow-hidden rounded-2xl border-2 border-yellow-500/50 bg-gradient-to-br from-yellow-500/20 via-orange-500/20 to-red-500/20 p-12 text-center backdrop-blur-sm">
+                                    {/* Animated background effect */}
+                                    <div className="absolute inset-0 overflow-hidden">
+                                        <div className="absolute -top-10 -left-10 h-40 w-40 animate-pulse rounded-full bg-yellow-500/30 blur-3xl"></div>
+                                        <div className="absolute -bottom-10 -right-10 h-40 w-40 animate-pulse rounded-full bg-orange-500/30 blur-3xl" style={{ animationDelay: '1s' }}></div>
+                                    </div>
+
+                                    {/* Content */}
+                                    <div className="relative z-10">
+                                        <div className="mb-6 text-6xl animate-bounce">🎉</div>
+                                        <h2 className="mb-4 text-4xl font-bold text-yellow-300 animate-pulse">
+                                            Congratulations {user?.displayName || 'Seeker'}!
+                                        </h2>
+                                        <p className="mb-6 text-2xl font-semibold text-white">
+                                            You have completed the 21-Day Gita Challenge!
+                                        </p>
+                                        <p className="mb-4 text-3xl font-bold text-[var(--saffron)]">
+                                            Final Score: {quizResult.score} / {quizResult.maxScore}
+                                        </p>
+                                        <p className="mb-8 text-lg text-gray-200 max-w-2xl mx-auto">
+                                            You have embarked on a transformative journey through the timeless wisdom of the Bhagavad Gita.
+                                            May this knowledge illuminate your path forward. 🙏
+                                        </p>
+                                        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                                            <Link
+                                                href="/"
+                                                className="rounded-full bg-gradient-to-r from-yellow-500 to-orange-500 px-8 py-3 font-bold text-white transition hover:brightness-110 shadow-lg"
+                                            >
+                                                View Your Achievement
+                                            </Link>
+                                            <Link
+                                                href="/leaderboard"
+                                                className="rounded-full bg-white/10 px-8 py-3 font-medium text-white transition hover:bg-white/20"
+                                            >
+                                                Check Leaderboard
+                                            </Link>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                // Regular completion screen for Days 1-20
+                                <div className="rounded-2xl border border-green-500/20 bg-green-500/10 p-8 text-center backdrop-blur-sm">
+                                    <h2 className="mb-2 text-2xl font-bold text-green-400">Day Completed!</h2>
+                                    <p className="mb-4 text-3xl font-bold text-[var(--saffron)]">Score: {quizResult.score} / {quizResult.maxScore}</p>
+                                    <p className="mb-6 text-gray-300">You have successfully unlocked the next step of your journey.</p>
+                                    <Link
+                                        href="/"
+                                        className="rounded-full bg-white/10 px-8 py-3 font-medium text-white transition hover:bg-white/20"
+                                    >
+                                        Return to Dashboard
+                                    </Link>
+                                </div>
+                            )
                         ) : (
                             <Quiz questions={dayData.quiz} onComplete={handleQuizComplete} />
                         )
