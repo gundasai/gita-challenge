@@ -15,9 +15,11 @@ import { ReactNode } from 'react';
 // In Next.js 15, params is a Promise or needs to be treated carefully in async components.
 // However, in "use client" components, we typically use useParams() hook for dynamic routes
 import { useParams } from "next/navigation";
+import { useAccessControl } from "@/hooks/useAccessControl";
 
 export default function DayPage() {
-    const { user, userData, loading } = useAuth();
+    const { user, userData, loading, userRole } = useAuth();
+    const { canAccess, checking } = useAccessControl();
     const params = useParams();
     const router = useRouter();
     const [dayData, setDayData] = useState<any>(null);
@@ -94,9 +96,18 @@ export default function DayPage() {
         }
     };
 
-    if (loading || !isClient) return <div className="p-12 text-center text-white">Loading...</div>;
+    // Show loading while checking access or Auth state
+    if (loading || checking || !isClient) return <div className="p-12 text-center text-white">Loading...</div>;
+
+    // Check if user is logged in
     if (!user) {
         if (isClient) router.push("/login");
+        return null;
+    }
+
+    // Check if user has access (has started or is admin)
+    if (!canAccess && userRole !== "admin") {
+        if (isClient) router.push("/waiting");
         return null;
     }
 

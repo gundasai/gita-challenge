@@ -8,9 +8,11 @@ import { BookOpen, PlayCircle, Award, ArrowRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import { doc, getDoc, collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { useAccessControl } from "@/hooks/useAccessControl";
 
 export default function Home() {
-  const { user, userData, loading } = useAuth(); // userData now comes from context
+  const { user, userData, loading, userRole } = useAuth();
+  const { canAccess, checking } = useAccessControl();
   const [daysData, setDaysData] = useState<any[]>([]);
 
   useEffect(() => {
@@ -30,7 +32,17 @@ export default function Home() {
     fetchData();
   }, [user]);
 
-  if (user) {
+  // Show loading while checking access
+  if (checking || loading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-black text-white">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-yellow-500 border-t-transparent"></div>
+      </div>
+    );
+  }
+
+  // If logged in and access granted (or admin), show dashboard
+  if (user && (canAccess || userRole === "admin")) {
     const currentDay = userData?.currentDay || 1;
     const daysCompleted = userData?.daysCompleted || [];
     // Convert daysCompleted array of IDs to boolean array for grid
@@ -88,7 +100,7 @@ export default function Home() {
               href="/signup"
               className="group flex items-center gap-2 rounded-full bg-[var(--saffron)] px-8 py-4 text-lg font-bold text-white transition hover:brightness-110"
             >
-              Start Your Journey
+              Register Now
               <ArrowRight className="transition-transform group-hover:translate-x-1" />
             </Link>
             <Link

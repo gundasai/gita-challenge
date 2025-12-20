@@ -5,8 +5,9 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { doc, getDoc, setDoc, updateDoc, collection, getDocs, addDoc, deleteDoc, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { Trash2, Edit, Plus, UserPlus, Save } from "lucide-react";
+import { Trash2, Edit, Plus, UserPlus, Save, Download } from "lucide-react";
 import { courseData as staticData } from "@/data/courseData";
+import * as XLSX from 'xlsx';
 
 export default function AdminDashboard() {
     const { user, userRole, loading } = useAuth();
@@ -16,7 +17,15 @@ export default function AdminDashboard() {
     const [editForm, setEditForm] = useState<any>({});
     const [newAdminEmail, setNewAdminEmail] = useState("");
     const [message, setMessage] = useState("");
-    const [activeTab, setActiveTab] = useState("content"); // content | admins
+    const [activeTab, setActiveTab] = useState("content"); // content | admins | database | settings
+    const [startDate, setStartDate] = useState("");
+
+    // Database Explorer State
+    const [explorerCollection, setExplorerCollection] = useState("users");
+    const [explorerDocs, setExplorerDocs] = useState<any[]>([]);
+    const [explorerLoading, setExplorerLoading] = useState(false);
+    const [editingDoc, setEditingDoc] = useState<{ id: string, data: string } | null>(null);
+
 
     useEffect(() => {
         if (!loading) {
@@ -24,9 +33,27 @@ export default function AdminDashboard() {
                 router.push("/");
             } else {
                 fetchDays();
+                fetchStartDate();
             }
         }
     }, [user, userRole, loading, router]);
+
+    const fetchStartDate = async () => {
+        try {
+            const configDoc = await getDoc(doc(db, "settings", "courseConfig"));
+            if (configDoc.exists()) {
+                const data = configDoc.data();
+                if (data.startDate) {
+                    // Convert Firestore timestamp to datetime-local format
+                    const date = data.startDate.toDate ? data.startDate.toDate() : new Date(data.startDate);
+                    const formatted = date.toISOString().slice(0, 16);
+                    setStartDate(formatted);
+                }
+            }
+        } catch (error) {
+            console.error("Error fetching start date:", error);
+        }
+    };
 
     const fetchDays = async () => {
         try {
@@ -119,11 +146,181 @@ export default function AdminDashboard() {
         }
     };
 
+    const downloadUsersAsExcel = () => {
+        // Prepare data for Excel
+        const excelData = users.map((user, index) => ({
+            'S.NO': index + 1,
+            'Name': user.displayName || '',
+            'Email': user.email || '',
+            'WhatsApp Number': user.whatsapp || '',
+            'Company/College': user.company || '',
+            'City': user.city || '',
+            'Role': user.role || 'user',
+            'Total Score': user.totalScore || 0,
+            'Current Day': user.currentDay || 1,
+            'Days Completed': user.daysCompleted?.length || 0,
+            'Streak': user.streak || 0,
+            'Created At': user.createdAt?.toDate?.()?.toLocaleDateString() || 'N/A'
+        }));
+
+        // Create worksheet
+        const ws = XLSX.utils.json_to_sheet(excelData);
+
+        // Create workbook
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Users");
+
+        // Generate Excel file and trigger download
+        XLSX.writeFile(wb, `gita-challenge-users-${new Date().toISOString().split('T')[0]}.xlsx`);
+    };
+
+    // Database cleanup functions
+    const handleResetAllScores = async () => {
+        if (!confirm("Are you sure you want to reset ALL user scores and progress? This will reset everyone (including admins) to Day 1 with 0 score.")) {
+            return;
+        }
+        try {
+            setMessage("Resetting all user data...");
+            const usersCol = collection(db, "users");
+            const snapshot = await getDocs(usersCol);
+
+            let count = 0;
+            for (const userDoc of snapshot.docs) {
+                await updateDoc(userDoc.ref, {
+                    currentDay: 1,
+                    daysCompleted: [],
+                    totalScore: 0,
+                    exp: 0,
+                    streak: 0
+                });
+                count++;
+            }
+
+            setMessage(`✅ Successfully reset ${count} users. All users are now at Day 1 with 0 score.`);
+            fetchUsers();
+        } catch (err) {
+            console.error(err);
+            setMessage("❌ Error resetting user data: " + err);
+        }
+    };
+
+    const handleDeleteNonAdminUsers = async () => {
+        if (!confirm("⚠️ WARNING: This will DELETE all non-admin users permanently! Are you absolutely sure?")) {
+            return;
+        }
+        try {
+            setMessage("Deleting non-admin users...");
+            const usersCol = collection(db, "users");
+            const snapshot = await getDocs(usersCol);
+
+            let deleted = 0;
+            for (const userDoc of snapshot.docs) {
+                const userData = userDoc.data();
+                if (userData.role !== "admin") {
+                    await deleteDoc(userDoc.ref);
+                    deleted++;
+                }
+            }
+
+            setMessage(`✅ Successfully deleted ${deleted} non-admin users.`);
+            fetchUsers();
+        } catch (err) {
+            console.error(err);
+            setMessage("❌ Error deleting users: " + err);
+        }
+    };
+
+    const handleSyncCourseData = async () => {
+        if (!confirm("This will update all 21 days with the new topics and quiz. Continue?")) {
+            return;
+        }
+        try {
+            setMessage("Syncing course data to database...");
+
+            for (const day of staticData) {
+                await setDoc(doc(db, "days", `day_${day.id}`), day);
+            }
+
+            setMessage(`✅ Successfully synced all 21 days with new topics!`);
+            fetchDays();
+        } catch (err) {
+            console.error(err);
+            setMessage("❌ Error syncing course data: " + err);
+        }
+    };
+
+    const handleSaveStartDate = async () => {
+        if (!startDate) {
+            setMessage("❌ Please select a valid date and time.");
+            return;
+        }
+        try {
+            setMessage("Saving start date...");
+            const configRef = doc(db, "settings", "courseConfig");
+            await setDoc(configRef, {
+                startDate: new Date(startDate)
+            }, { merge: true });
+            setMessage("✅ Start date updated successfully!");
+        } catch (error) {
+            console.error("Error saving start date:", error);
+            setMessage("❌ Error saving start date: " + error);
+        }
+    };
+
+    // Database Explorer Functions
+    const fetchExplorerDocs = async (collectionName: string) => {
+        setExplorerLoading(true);
+        try {
+            const colRef = collection(db, collectionName);
+            const snapshot = await getDocs(colRef);
+            const docs = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+            setExplorerDocs(docs);
+            setExplorerCollection(collectionName);
+        } catch (err) {
+            console.error("Error fetching explorer docs:", err);
+            setMessage(`❌ Error fetching ${collectionName}: ${err}`);
+        } finally {
+            setExplorerLoading(false);
+        }
+    };
+
+    const handleDeleteExplorerDoc = async (id: string) => {
+        if (!confirm(`Are you sure you want to delete document ${id} from ${explorerCollection}?`)) return;
+        try {
+            await deleteDoc(doc(db, explorerCollection, id));
+            setMessage(`✅ Document ${id} deleted from ${explorerCollection}`);
+            fetchExplorerDocs(explorerCollection);
+        } catch (err) {
+            console.error("Error deleting doc:", err);
+            setMessage(`❌ Error deleting document: ${err}`);
+        }
+    };
+
+    const handleUpdateExplorerDoc = async () => {
+        if (!editingDoc) return;
+        try {
+            const parsedData = JSON.parse(editingDoc.data);
+            await setDoc(doc(db, explorerCollection, editingDoc.id), parsedData);
+            setMessage(`✅ Document ${editingDoc.id} updated in ${explorerCollection}`);
+            setEditingDoc(null);
+            fetchExplorerDocs(explorerCollection);
+        } catch (err) {
+            console.error("Error updating doc:", err);
+            setMessage(`❌ Error updating document: ${err}`);
+        }
+    };
+
     useEffect(() => {
         if (activeTab === "admins") {
             fetchUsers();
         }
-    }, [activeTab]);
+        if (activeTab === "database") {
+            fetchExplorerDocs(explorerCollection);
+        }
+    }, [activeTab, explorerCollection]);
 
     if (loading || userRole !== "admin") return <div className="p-8 text-center text-white">Loading Admin Panel...</div>;
 
@@ -146,6 +343,24 @@ export default function AdminDashboard() {
                             }`}
                     >
                         Users
+                    </button>
+                    <button
+                        onClick={() => setActiveTab("database")}
+                        className={`flex-1 sm:flex-none rounded-lg px-3 sm:px-4 py-2 text-sm font-medium transition ${activeTab === "database"
+                            ? "bg-[var(--saffron)] text-white"
+                            : "bg-white/5 text-gray-400 hover:bg-white/10"
+                            }`}
+                    >
+                        Database
+                    </button>
+                    <button
+                        onClick={() => setActiveTab("settings")}
+                        className={`flex-1 sm:flex-none rounded-lg px-3 sm:px-4 py-2 text-sm font-medium transition ${activeTab === "settings"
+                            ? "bg-[var(--saffron)] text-white"
+                            : "bg-white/5 text-gray-400 hover:bg-white/10"
+                            }`}
+                    >
+                        Settings
                     </button>
                 </div>
             </header>
@@ -329,22 +544,41 @@ export default function AdminDashboard() {
                         </div>
                     </div>
 
-                    <div className="rounded-xl border border-white/10 bg-white/5 overflow-hidden">
+                    {/* Download Button */}
+                    <div className="flex justify-end mb-4">
+                        <button
+                            onClick={downloadUsersAsExcel}
+                            className="flex items-center gap-2 rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700 font-medium transition"
+                        >
+                            <Download size={18} />
+                            Download as Excel
+                        </button>
+                    </div>
+
+                    <div className="rounded-xl border border-white/10 bg-white/5 overflow-x-auto">
                         <table className="w-full text-left text-sm text-gray-400">
                             <thead className="bg-white/5 text-[var(--saffron)] font-bold">
                                 <tr>
+                                    <th className="p-4">S.NO</th>
                                     <th className="p-4">Name</th>
                                     <th className="p-4">Email</th>
+                                    <th className="p-4">WhatsApp</th>
+                                    <th className="p-4">Company/College</th>
+                                    <th className="p-4">City</th>
                                     <th className="p-4">Role</th>
                                     <th className="p-4">Total Score</th>
                                     <th className="p-4 text-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {users.map((user) => (
+                                {users.map((user, index) => (
                                     <tr key={user.uid} className="border-b border-white/5 hover:bg-white/5">
+                                        <td className="p-4 font-medium text-white">{index + 1}</td>
                                         <td className="p-4 font-medium text-white">{user.displayName}</td>
                                         <td className="p-4">{user.email}</td>
+                                        <td className="p-4">{user.whatsapp || 'N/A'}</td>
+                                        <td className="p-4">{user.company || 'N/A'}</td>
+                                        <td className="p-4">{user.city || 'N/A'}</td>
                                         <td className="p-4">
                                             <span className={`px-2 py-1 rounded text-xs ${user.role === 'admin' ? 'bg-purple-500/20 text-purple-200' : 'bg-blue-500/20 text-blue-200'}`}>
                                                 {user.role}
@@ -364,6 +598,236 @@ export default function AdminDashboard() {
                                 ))}
                             </tbody>
                         </table>
+                    </div>
+                </div>
+            )}
+
+            {activeTab === "database" && (
+                <div className="space-y-6">
+                    <div className="rounded-xl border border-white/10 bg-white/5 p-6">
+                        <h2 className="mb-4 text-xl font-bold text-[var(--saffron)]">Database Management</h2>
+                        <p className="mb-6 text-sm text-gray-400">
+                            Powerful tools to manage your database. Use with caution!
+                        </p>
+
+                        <div className="grid gap-6 md:grid-cols-3">
+                            {/* Reset All Scores */}
+                            <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-6">
+                                <h3 className="mb-2 text-lg font-bold text-yellow-400">Reset All Scores</h3>
+                                <p className="mb-4 text-sm text-gray-400">
+                                    Reset all users (including admins) to Day 1 with 0 score. User accounts remain intact.
+                                </p>
+                                <button
+                                    onClick={handleResetAllScores}
+                                    className="w-full rounded bg-yellow-600 px-4 py-2 text-white hover:bg-yellow-700 font-medium transition"
+                                >
+                                    Reset All Scores
+                                </button>
+                            </div>
+
+                            {/* Delete Non-Admin Users */}
+                            <div className="rounded-lg border border-red-500/30 bg-red-500/5 p-6">
+                                <h3 className="mb-2 text-lg font-bold text-red-400">Delete Non-Admin Users</h3>
+                                <p className="mb-4 text-sm text-gray-400">
+                                    ⚠️ Permanently delete all user accounts except admins. This cannot be undone!
+                                </p>
+                                <button
+                                    onClick={handleDeleteNonAdminUsers}
+                                    className="w-full rounded bg-red-600 px-4 py-2 text-white hover:bg-red-700 font-medium transition"
+                                >
+                                    Delete All Users
+                                </button>
+                            </div>
+
+                            {/* Sync Course Data */}
+                            <div className="rounded-lg border border-green-500/30 bg-green-500/5 p-6">
+                                <h3 className="mb-2 text-lg font-bold text-green-400">Sync Course Data</h3>
+                                <p className="mb-4 text-sm text-gray-400">
+                                    Update all 21 days with the latest topics and quiz from courseData.ts
+                                </p>
+                                <button
+                                    onClick={handleSyncCourseData}
+                                    className="w-full rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700 font-medium transition"
+                                >
+                                    Sync Course Content
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Info Section */}
+                        <div className="mt-6 rounded-lg border border-blue-500/30 bg-blue-500/5 p-4">
+                            <h4 className="mb-2 text-sm font-bold text-blue-400">📝 Current Course Topics</h4>
+                            <p className="text-xs text-gray-400">
+                                All 21 days are configured with topics A-U (Atma to Ultimate Destination),
+                                using the common YouTube video and Quiz1.
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Database Explorer */}
+                    <div className="rounded-xl border border-white/10 bg-white/5 p-6">
+                        <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div>
+                                <h2 className="text-xl font-bold text-[var(--saffron)]">Database Explorer</h2>
+                                <p className="text-sm text-gray-400">Browse and manage raw Firestore data across all collections.</p>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                                {['users', 'days', 'settings'].map((col) => (
+                                    <button
+                                        key={col}
+                                        onClick={() => fetchExplorerDocs(col)}
+                                        className={`rounded px-4 py-2 text-sm font-medium transition ${explorerCollection === col
+                                            ? 'bg-[var(--saffron)] text-white'
+                                            : 'bg-white/5 text-gray-400 hover:bg-white/10'
+                                            }`}
+                                    >
+                                        {col.charAt(0).toUpperCase() + col.slice(1)}
+                                    </button>
+                                ))}
+                                {/* Custom Collection Input */}
+                                <div className="flex gap-2 ml-2">
+                                    <input
+                                        type="text"
+                                        placeholder="Collection Name..."
+                                        className="rounded border border-white/10 bg-black/20 px-3 py-1 text-sm text-white focus:border-[var(--saffron)] focus:outline-none"
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                                fetchExplorerDocs((e.target as HTMLInputElement).value);
+                                            }
+                                        }}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {explorerLoading ? (
+                            <div className="py-12 text-center text-gray-500">Loading documents...</div>
+                        ) : (
+                            <div className="overflow-x-auto rounded-lg border border-white/10">
+                                {explorerDocs.length === 0 ? (
+                                    <div className="py-12 text-center text-gray-500">No documents found in {explorerCollection}.</div>
+                                ) : (
+                                    <table className="w-full text-left text-sm border-collapse">
+                                        <thead className="bg-white/5 text-[var(--saffron)] font-bold">
+                                            <tr>
+                                                <th className="p-3 border-b border-white/10">ID</th>
+                                                {/* Dynamically generate headers from the first few docs */}
+                                                {Object.keys(explorerDocs.reduce((acc, doc) => ({ ...acc, ...doc }), {})).filter(k => k !== 'id').map(key => (
+                                                    <th key={key} className="p-3 border-b border-white/10 whitespace-nowrap">{key}</th>
+                                                ))}
+                                                <th className="p-3 border-b border-white/10 text-right sticky right-0 bg-gray-900 shadow-[-5px_0_10px_rgba(0,0,0,0.5)]">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {explorerDocs.map((doc) => {
+                                                const keys = Object.keys(explorerDocs.reduce((acc, d) => ({ ...acc, ...d }), {})).filter(k => k !== 'id');
+                                                return (
+                                                    <tr key={doc.id} className="border-b border-white/5 hover:bg-white/5 transition">
+                                                        <td className="p-3 font-mono text-xs text-gray-400">{doc.id}</td>
+                                                        {keys.map(key => {
+                                                            const value = doc[key];
+                                                            let displayValue = "";
+                                                            if (value === null) displayValue = "null";
+                                                            else if (typeof value === 'object') {
+                                                                if (value?.toDate) displayValue = value.toDate().toLocaleString();
+                                                                else displayValue = JSON.stringify(value);
+                                                            }
+                                                            else displayValue = String(value);
+
+                                                            return (
+                                                                <td key={key} className="p-3 max-w-[200px] truncate text-gray-300" title={displayValue}>
+                                                                    {displayValue}
+                                                                </td>
+                                                            );
+                                                        })}
+                                                        <td className="p-3 text-right sticky right-0 bg-gray-900/80 backdrop-blur shadow-[-5px_0_10px_rgba(0,0,0,0.5)]">
+                                                            <div className="flex justify-end gap-2">
+                                                                <button
+                                                                    onClick={() => setEditingDoc({ id: doc.id, data: JSON.stringify(doc, null, 2) })}
+                                                                    className="rounded bg-blue-600/20 px-3 py-1 text-xs text-blue-400 hover:bg-blue-600/30"
+                                                                >
+                                                                    Edit
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleDeleteExplorerDoc(doc.id)}
+                                                                    className="rounded bg-red-600/20 px-3 py-1 text-xs text-red-400 hover:bg-red-600/30"
+                                                                >
+                                                                    Delete
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                )}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Editor Modal */}
+                    {editingDoc && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+                            <div className="w-full max-w-2xl rounded-xl border border-white/10 bg-gray-900 p-6 shadow-2xl">
+                                <h3 className="mb-4 text-lg font-bold text-white">Edit Document: {editingDoc.id}</h3>
+                                <textarea
+                                    className="mb-4 h-96 w-full rounded border border-white/10 bg-black p-4 font-mono text-xs text-green-400 focus:border-[var(--saffron)] focus:outline-none"
+                                    value={editingDoc.data}
+                                    onChange={(e) => setEditingDoc({ ...editingDoc, data: e.target.value })}
+                                />
+                                <div className="flex justify-end gap-3">
+                                    <button
+                                        onClick={() => setEditingDoc(null)}
+                                        className="rounded px-4 py-2 text-sm text-gray-400 hover:text-white"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleUpdateExplorerDoc}
+                                        className="rounded bg-[var(--saffron)] px-6 py-2 text-sm font-bold text-white transition hover:brightness-110"
+                                    >
+                                        Save Changes
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {activeTab === "settings" && (
+                <div className="space-y-6">
+                    <div className="rounded-xl border border-white/10 bg-white/5 p-6">
+                        <h2 className="mb-4 text-xl font-bold text-[var(--saffron)]">Challenge Settings</h2>
+                        <p className="mb-6 text-sm text-gray-400">
+                            Configure global settings for the 21-Day Gita Challenge.
+                        </p>
+
+                        <div className="max-w-md space-y-6">
+                            <div className="space-y-2">
+                                <label className="block text-sm font-medium text-gray-300">
+                                    Set Challenge Start Date & Time
+                                </label>
+                                <div className="flex flex-col sm:flex-row gap-4">
+                                    <input
+                                        type="datetime-local"
+                                        value={startDate}
+                                        onChange={(e) => setStartDate(e.target.value)}
+                                        className="w-full rounded border border-white/10 bg-black/20 px-4 py-2 text-white focus:border-[var(--saffron)] focus:outline-none focus:ring-1 focus:ring-[var(--saffron)]"
+                                    />
+                                    <button
+                                        onClick={handleSaveStartDate}
+                                        className="whitespace-nowrap rounded bg-[var(--saffron)] px-6 py-2 font-bold text-white transition hover:brightness-110"
+                                    >
+                                        Set Start Date
+                                    </button>
+                                </div>
+                                <p className="mt-2 text-xs text-gray-500">
+                                    Users will be redirected to the waiting page until this time is reached.
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}

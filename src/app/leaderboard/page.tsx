@@ -8,6 +8,10 @@ import { Trophy, Medal, Award } from "lucide-react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
+import { useAuth } from "@/context/AuthContext";
+import { useAccessControl } from "@/hooks/useAccessControl";
+import { useRouter } from "next/navigation";
+
 interface LeaderboardUser {
     uid: string;
     displayName: string;
@@ -18,12 +22,19 @@ interface LeaderboardUser {
 }
 
 export default function LeaderboardPage() {
+    const { loading: authLoading, userRole } = useAuth();
+    const { canAccess, checking } = useAccessControl();
+    const router = useRouter();
     const [users, setUsers] = useState<LeaderboardUser[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        fetchLeaderboard();
-    }, []);
+        if (!checking && !authLoading) {
+            if (canAccess || userRole === "admin") {
+                fetchLeaderboard();
+            }
+        }
+    }, [checking, authLoading, canAccess, userRole]);
 
     const fetchLeaderboard = async () => {
         try {
@@ -71,7 +82,7 @@ export default function LeaderboardPage() {
         }
     };
 
-    if (loading) return <div className="p-12 text-center text-white">Loading Leaderboard...</div>;
+    if (authLoading || checking || loading) return <div className="p-12 text-center text-white">Loading Leaderboard...</div>;
 
     return (
         <div className="min-h-screen bg-[var(--background)] p-6 sm:p-12">
