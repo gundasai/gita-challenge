@@ -9,9 +9,8 @@ interface AuthContextType {
     userData: any; // Using any for flexibility, strict type would be better
     userRole: string | null;
     loading: boolean;
-    signup: (email: string, password: string, displayName: string) => Promise<UserCredential>;
+    signup: (email: string, password: string, displayName: string, whatsapp: string, company: string, city: string) => Promise<UserCredential>;
     login: (email: string, password: string) => Promise<UserCredential>;
-    loginWithGoogle: () => Promise<UserCredential>;
     logout: () => Promise<void>;
 }
 
@@ -24,10 +23,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [loading, setLoading] = useState(true);
 
     // Sign up with Email/Password
-    const signup = async (email: string, password: string, displayName: string) => {
+    const signup = async (email: string, password: string, displayName: string, whatsapp: string, company: string, city: string) => {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         await updateProfile(userCredential.user, { displayName });
-        await createUserDocument(userCredential.user);
+        await createUserDocument(userCredential.user, whatsapp, company, city);
         return userCredential;
     };
 
@@ -36,27 +35,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return signInWithEmailAndPassword(auth, email, password);
     };
 
-    // Login with Google
-    const loginWithGoogle = async () => {
-        const provider = new GoogleAuthProvider();
-        const result = await signInWithPopup(auth, provider);
-        try {
-            await createUserDocument(result.user);
-        } catch (error) {
-            console.error("Error creating user profile in DB:", error);
-            // We do not re-throw here so the user can still proceed to the app
-            // The app handles missing DB data gracefully by defaulting to Day 1
-        }
-        return result;
-    };
-
     // Logout
     const logout = () => {
         return signOut(auth);
     };
 
     // Create User Document in Firestore
-    const createUserDocument = async (user: User) => {
+    const createUserDocument = async (user: User, whatsapp?: string, company?: string, city?: string) => {
         const userRef = doc(db, "users", user.uid);
         const userSnap = await getDoc(userRef);
 
@@ -66,6 +51,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 uid: user.uid,
                 email: user.email,
                 displayName: user.displayName,
+                whatsapp: whatsapp || "",
+                company: company || "",
+                city: city || "",
                 currentDay: 1,
                 daysCompleted: [],
                 exp: 0,
@@ -122,7 +110,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loading,
         signup,
         login,
-        loginWithGoogle,
         logout,
     };
 
