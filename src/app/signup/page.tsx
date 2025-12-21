@@ -18,6 +18,8 @@ export default function SignupPage() {
     const [error, setError] = useState("");
     const [validationErrors, setValidationErrors] = useState<{ [key: string]: string }>({});
 
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
     const validateForm = () => {
         const errors: { [key: string]: string } = {};
 
@@ -67,6 +69,8 @@ export default function SignupPage() {
             return;
         }
 
+        setIsSubmitting(true);
+
         try {
             console.log("Attempting signup...");
             await signup(email, password, name, whatsapp, company, city);
@@ -76,6 +80,7 @@ export default function SignupPage() {
         } catch (err: any) {
             console.error("Signup Error:", err);
             setError("Failed to create account: " + err.message);
+            setIsSubmitting(false);
         }
     };
 
@@ -269,9 +274,17 @@ export default function SignupPage() {
 
                     <button
                         type="submit"
-                        className="group relative flex w-full justify-center rounded bg-[var(--saffron)] px-4 py-2 text-sm font-medium text-white hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-[var(--saffron)] focus:ring-offset-2"
+                        disabled={isSubmitting}
+                        className="group relative flex w-full justify-center items-center gap-3 rounded bg-[var(--saffron)] px-4 py-2 text-sm font-medium text-white hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-[var(--saffron)] focus:ring-offset-2 disabled:opacity-70 disabled:cursor-not-allowed transition-all"
                     >
-                        Register
+                        {isSubmitting ? (
+                            <>
+                                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                                <span>Registering...</span>
+                            </>
+                        ) : (
+                            "Register"
+                        )}
                     </button>
                 </form>
 
