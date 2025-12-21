@@ -4,9 +4,21 @@ import { useAuth } from "@/context/AuthContext";
 import DashboardGrid from "@/components/DashboardGrid";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { BookOpen, PlayCircle, Award, ArrowRight } from "lucide-react";
+import {
+  BookOpen,
+  PlayCircle,
+  Award,
+  ArrowRight,
+  Clock,
+  Briefcase,
+  Sparkles,
+  Coffee,
+  MapPin,
+  Share2,
+  Quote
+} from "lucide-react";
 import { useEffect, useState } from "react";
-import { doc, getDoc, collection, getDocs } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAccessControl } from "@/hooks/useAccessControl";
 
@@ -19,10 +31,12 @@ export default function Home() {
     async function fetchData() {
       if (user) {
         try {
-          // Fetch Days Data (for unlock dates)
           const daysCol = collection(db, "days");
           const daysSnap = await getDocs(daysCol);
-          const days = daysSnap.docs.map(doc => ({ ...doc.data(), id: parseInt(doc.id.replace('day_', '')) }));
+          const days = daysSnap.docs.map(doc => ({
+            ...doc.data(),
+            id: parseInt(doc.id.replace('day_', ''))
+          }));
           setDaysData(days);
         } catch (error) {
           console.error("Error fetching data:", error);
@@ -32,20 +46,23 @@ export default function Home() {
     fetchData();
   }, [user]);
 
-  // Show loading while checking access
+  const handleShare = () => {
+    const text = "Hey guys! 🧘‍♂️ I’m signing up for this 21-Day Recharge starting January 1st. It’s built for the 'corporate soul'—short 20-minute sessions to help with stress and focus.\n\n'Everything is better with a friend,' so I’m sharing it here! Would love for a few of us to take the challenge together and start the year strong.\n\nRegister here if you're in: https://gita-challenge-uqv6.vercel.app/";
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+  };
+
   if (checking || loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-black text-white">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-yellow-500 border-t-transparent"></div>
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--saffron)] border-t-transparent"></div>
       </div>
     );
   }
 
-  // If logged in and access granted (or admin), show dashboard
+  // Dashboard View (Logged in + Access)
   if (user && (canAccess || userRole === "admin")) {
     const currentDay = userData?.currentDay || 1;
     const daysCompleted = userData?.daysCompleted || [];
-    // Convert daysCompleted array of IDs to boolean array for grid
     const daysCompletedBool = Array(21).fill(false).map((_, i) => daysCompleted.includes(i + 1));
     const completedCount = daysCompleted.length;
 
@@ -57,14 +74,14 @@ export default function Home() {
               <h1 className="text-3xl font-bold text-[var(--saffron)]">My Journey</h1>
               <p className="text-gray-400">Welcome back, {user.displayName?.split(" ")[0]}</p>
             </div>
-            <div className="flex items-center gap-4 rounded-xl bg-white/5 p-4 border border-white/10">
+            <div className="flex items-center gap-4 rounded-xl bg-white/5 p-4 border border-white/10 shadow-2xl">
               <div className="text-center">
-                <p className="text-xs text-gray-500">Current Streak</p>
-                <p className="text-xl font-bold text-[var(--saffron)]">{userData?.streak || 0} Days</p>
+                <p className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Total Marks</p>
+                <p className="text-xl font-bold text-[var(--saffron)]">{userData?.totalScore || 0}</p>
               </div>
               <div className="h-8 w-px bg-white/10"></div>
               <div className="text-center">
-                <p className="text-xs text-gray-500">Completed</p>
+                <p className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Completed</p>
                 <p className="text-xl font-bold text-[var(--cream)]">{completedCount}/21</p>
               </div>
             </div>
@@ -76,84 +93,263 @@ export default function Home() {
     );
   }
 
+  // Landing Page View
   return (
-    <div className="bg-[var(--background)] text-[var(--foreground)]">
+    <div className="bg-gray-950 text-white selection:bg-[var(--saffron)] selection:text-white">
       {/* Hero Section */}
-      <section className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-4 text-center">
-        <div className="absolute inset-0 z-0 bg-radial-gradient from-[var(--saffron)]/10 to-transparent opacity-50"></div>
+      <section className="relative flex min-h-[90vh] flex-col items-center justify-center overflow-hidden px-4 pt-20">
+        <div className="absolute inset-0 z-0">
+          <div className="absolute top-1/4 left-1/4 h-96 w-96 rounded-full bg-[var(--saffron)]/10 blur-[120px] animate-pulse"></div>
+          <div className="absolute bottom-1/4 right-1/4 h-96 w-96 rounded-full bg-orange-600/10 blur-[120px] animate-pulse delay-1000"></div>
+        </div>
 
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="z-10 max-w-4xl space-y-6"
+          transition={{ duration: 1, ease: "easeOut" }}
+          className="relative z-10 max-w-5xl space-y-8 text-center"
         >
-          <h1 className="bg-linear-to-b from-[var(--saffron)] to-[var(--cream)] bg-clip-text text-5xl font-extrabold text-transparent sm:text-7xl">
-            21 Day Gita Challenge
+          <div className="inline-block rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-[var(--saffron)] backdrop-blur-md">
+            Starting January 1st
+          </div>
+
+          <h1 className="bg-gradient-to-b from-white via-[var(--cream)] to-[var(--saffron)] bg-clip-text text-5xl font-black tracking-tight text-transparent sm:text-8xl">
+            Gita Wisdom Course
           </h1>
-          <p className="mx-auto max-w-2xl text-lg text-gray-400 sm:text-xl">
-            Unlock timeless wisdom. Transform your life. Join thousands of seekers on a 21-day spiritual journey through the Bhagavad Gita.
+
+          <p className="mx-auto max-w-2xl text-lg text-gray-400 sm:text-xl leading-relaxed">
+            Behind the glass buildings and endless meetings, there’s a quiet search for something more.
+            Reclaim your inner peace with a habit designed for the modern soul.
           </p>
 
-          <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+          <div className="flex flex-col items-center justify-center gap-4 sm:flex-row pt-4">
             <Link
               href="/signup"
-              className="group flex items-center gap-2 rounded-full bg-[var(--saffron)] px-8 py-4 text-lg font-bold text-white transition hover:brightness-110"
+              className="group relative flex items-center gap-3 overflow-hidden rounded-full bg-[var(--saffron)] px-10 py-5 text-lg font-bold text-white shadow-[0_10px_40px_rgba(255,153,51,0.3)] transition-all hover:scale-105 hover:shadow-[0_15px_50px_rgba(255,153,51,0.4)] active:scale-95"
             >
-              Register Now
-              <ArrowRight className="transition-transform group-hover:translate-x-1" />
+              <span>Register Now</span>
+              <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
             </Link>
             <Link
-              href="#learn-more"
-              className="rounded-full border border-white/10 bg-white/5 px-8 py-4 text-lg font-medium text-white transition hover:bg-white/10"
+              href="#the-journey"
+              className="rounded-full border border-white/10 bg-white/5 px-10 py-5 text-lg font-semibold text-white backdrop-blur-md transition-all hover:bg-white/10"
             >
               Learn More
             </Link>
           </div>
         </motion.div>
+
+        {/* Floating elements styling */}
+        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce opacity-20">
+          <div className="h-10 w-0.5 bg-gradient-to-b from-white to-transparent"></div>
+        </div>
       </section>
 
-      {/* Features Grid */}
-      <section id="learn-more" className="py-24 px-4">
-        <div className="mx-auto max-w-7xl">
-          <h2 className="mb-16 text-center text-3xl font-bold text-[var(--cream)] sm:text-4xl">
-            What You Will Learn
-          </h2>
+      {/* The Context / Corporate Soul Section */}
+      <section id="the-journey" className="relative py-24 px-4 overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
+        <div className="mx-auto max-w-5xl space-y-16">
+          <motion.div
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            className="grid gap-12 md:grid-cols-2 items-center"
+          >
+            <div className="space-y-6">
+              <h2 className="text-3xl font-bold text-[var(--cream)] md:text-5xl tracking-tight">
+                The Rhythm of the City
+              </h2>
+              <div className="space-y-4 text-lg text-gray-400 leading-relaxed font-light">
+                <p>
+                  We all know the rhythm. Behind the glass buildings, the high-speed internet, and the endless meetings, there’s a quiet search for something more.
+                </p>
+                <p>
+                  Between the deadlines and the commute, it’s easy to lose touch with our inner peace. We realize the New Year is more than just a calendar change—it’s the perfect opportunity for a fresh start.
+                </p>
+              </div>
+            </div>
+            <div className="relative rounded-3xl overflow-hidden aspect-[4/3] shadow-2xl">
+              <div className="absolute inset-0 bg-gradient-to-tr from-gray-950 to-transparent z-10"></div>
+              <div className="absolute inset-0 bg-[var(--saffron)]/10 animate-pulse"></div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Briefcase size={80} className="text-[var(--saffron)] opacity-20" />
+              </div>
+              <img
+                src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2070&auto=format&fit=crop"
+                alt="Modern Cityscape"
+                className="w-full h-full object-cover grayscale opacity-40"
+              />
+            </div>
+          </motion.div>
 
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
-            <FeatureCard
-              icon={<PlayCircle size={32} className="text-[var(--saffron)]" />}
-              title="Daily Wisdom"
-              description="Watch curated video content explaining core concepts of the Gita in a modern context."
+          {/* Intro to 21-Day Recharge */}
+          <div className="rounded-3xl border border-[var(--saffron)]/20 bg-gradient-to-br from-[var(--saffron)]/5 to-transparent p-8 md:p-12 text-center space-y-6 relative overflow-hidden backdrop-blur-sm">
+            <div className="absolute -top-10 -right-10 h-40 w-40 bg-[var(--saffron)]/10 blur-3xl rounded-full"></div>
+            <Sparkles className="mx-auto text-[var(--saffron)] h-12 w-12" />
+            <h3 className="text-2xl md:text-4xl font-bold text-white">The 21-Day Recharge</h3>
+            <p className="mx-auto max-w-3xl text-lg text-gray-400 font-light leading-relaxed">
+              Designed specifically for the busy corporate soul. This isn't a heavy academic course; it’s a spiritual habit designed to fit into your life, not take it over.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Why Join Section */}
+      <section className="py-24 px-4 bg-white/[0.02]">
+        <div className="mx-auto max-w-7xl">
+          <div className="text-center space-y-4 mb-20">
+            <h2 className="text-3xl font-bold text-[var(--cream)] md:text-4xl">Why Join This Journey?</h2>
+            <div className="h-1.5 w-24 bg-[var(--saffron)] mx-auto rounded-full"></div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
+            <BenefitCard
+              icon={<Clock className="text-[var(--saffron)]" size={32} />}
+              title="Your Schedule"
+              description="No matter how busy your shift is, sessions are ready when you are."
             />
-            <FeatureCard
-              icon={<BookOpen size={32} className="text-[var(--saffron)]" />}
-              title="Interactive Quizzes"
-              description="Test your understanding with daily quizzes that unlock the next step in your journey."
+            <BenefitCard
+              icon={<Coffee className="text-[var(--saffron)]" size={32} />}
+              title="Micro-Learning"
+              description="Only 20 minutes a day. Deeper impact than a coffee break."
             />
-            <FeatureCard
-              icon={<Award size={32} className="text-[var(--saffron)]" />}
-              title="Earn Certification"
-              description="Complete the 21-day challenge and receive a digital certificate of completion."
+            <BenefitCard
+              icon={<Sparkles className="text-[var(--saffron)]" size={32} />}
+              title="Daily Clarity"
+              description="Quick quizzes before midnight help lock in the day's wisdom."
+            />
+            <BenefitCard
+              icon={<MapPin className="text-[var(--saffron)]" size={32} />}
+              title="Total Flexibility"
+              description="Attend from anywhere—your PG, your office, or your home."
             />
           </div>
         </div>
       </section>
+
+      {/* Testimonials & Quotes Section */}
+      <section className="py-24 px-4">
+        <div className="mx-auto max-w-6xl space-y-16">
+          <div className="text-center">
+            <h2 className="text-xl font-bold text-[var(--saffron)] uppercase tracking-widest mb-4 italic">
+              "It’s More Than a Course—It’s a Connection."
+            </h2>
+            <p className="text-gray-400 text-lg max-w-3xl mx-auto">
+              This journey is about more than just information; it’s about transformation. Whether you are looking for stress relief, deeper purpose, or a connection to the divine, this is your gateway.
+            </p>
+          </div>
+
+          <div className="grid gap-8 md:grid-cols-2">
+            <QuoteCard
+              quote="You don't need to leave your world to find peace; you just need to change how you see it."
+              category="Timeless Wisdom"
+            />
+            <QuoteCard
+              quote="Research says it takes 21 days to build a habit. Let's make yours a spiritual one."
+              category="The Challenge"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Share Section */}
+      <section className="py-24 px-4 bg-gradient-to-b from-transparent to-[var(--saffron)]/10">
+        <div className="mx-auto max-w-4xl text-center space-y-8 rounded-3xl border border-white/5 bg-white/5 p-12 backdrop-blur-md">
+          <Share2 className="mx-auto text-[var(--saffron)] h-12 w-12" />
+          <h2 className="text-3xl font-bold text-white">Share the Journey</h2>
+          <p className="text-xl text-gray-300">
+            Everything is better with a friend. Forward this link to your office group and take the challenge together!
+          </p>
+          <button
+            onClick={handleShare}
+            className="inline-flex items-center gap-2 rounded-full border border-[var(--saffron)] px-8 py-3 font-semibold text-[var(--saffron)] transition-all hover:bg-[var(--saffron)] hover:text-white"
+          >
+            Forward to WhatsApp
+          </button>
+        </div>
+      </section>
+
+      {/* Footer / Final CTA */}
+      <section className="py-24 px-4 text-center">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          whileInView={{ opacity: 1, scale: 1 }}
+          viewport={{ once: true }}
+          className="space-y-8"
+        >
+          <div className="space-y-2">
+            <h2 className="text-4xl font-black text-white md:text-6xl tracking-tight">Ready to begin?</h2>
+            <p className="text-gray-400">Join thousands of others starting Jan 1st.</p>
+          </div>
+          <Link
+            href="/signup"
+            className="inline-flex items-center gap-2 rounded-full bg-white px-10 py-5 text-lg font-bold text-black transition-all hover:scale-105 active:scale-95"
+          >
+            Create My Account
+            <ArrowRight size={20} />
+          </Link>
+        </motion.div>
+      </section>
+
+      {/* Mini Footer */}
+      <footer className="py-12 px-4 border-t border-white/5 text-center text-gray-600 text-sm">
+        <p>&copy; 2025 Gita Wisdom Course. All Rights Reserved.</p>
+      </footer>
     </div>
   );
 }
 
-function FeatureCard({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
+function BenefitCard({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
   return (
     <motion.div
       whileHover={{ y: -5 }}
-      className="rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur-sm transition-colors hover:border-[var(--saffron)]/30"
+      transition={{ duration: 0.3 }}
+      className="group rounded-2xl border border-white/5 bg-white/5 p-8 backdrop-blur-sm transition-all hover:border-[var(--saffron)]/30 hover:bg-[var(--saffron)]/5"
     >
-      <div className="mb-4 inline-block rounded-xl bg-black/30 p-3">
+      <div className="mb-6 inline-block rounded-2xl bg-black/40 p-4 transition-transform group-hover:scale-110">
         {icon}
       </div>
       <h3 className="mb-3 text-xl font-bold text-[var(--cream)]">{title}</h3>
-      <p className="text-gray-400">{description}</p>
+      <p className="text-gray-400 text-sm leading-relaxed">{description}</p>
+    </motion.div>
+  );
+}
+
+function QuoteCard({ quote, category }: { quote: string; category: string }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      whileInView={{ opacity: 1, scale: 1 }}
+      whileHover={{ y: -5, transition: { duration: 0.2 } }}
+      viewport={{ once: true }}
+      className="relative group overflow-hidden rounded-[2.5rem] border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] p-10 md:p-14 shadow-2xl backdrop-blur-xl transition-all"
+    >
+      {/* Decorative Blur Background */}
+      <div className="absolute -top-24 -left-24 h-64 w-64 rounded-full bg-[var(--saffron)]/10 blur-[80px] transition-all group-hover:bg-[var(--saffron)]/20" />
+
+      {/* Visual Accent */}
+      <div className="absolute top-0 left-0 h-full w-1.5 bg-gradient-to-b from-[var(--saffron)] to-transparent opacity-50" />
+
+      <div className="relative z-10 space-y-8">
+        <div className="flex items-center gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--saffron)]/10 text-[var(--saffron)] shadow-lg shadow-[var(--saffron)]/5">
+            <Quote size={24} fill="currentColor" className="opacity-80" />
+          </div>
+          <span className="text-sm font-black uppercase tracking-[0.3em] text-[var(--saffron)]/80">
+            {category}
+          </span>
+        </div>
+
+        <p className="text-2xl md:text-3xl font-light italic leading-relaxed text-[var(--cream)]/90 selection:bg-[var(--saffron)] selection:text-white">
+          “{quote}”
+        </p>
+
+        {/* Bottom subtle detail */}
+        <div className="flex items-center gap-2 pt-4">
+          <div className="h-0.5 w-12 bg-[var(--saffron)]/30 rounded-full" />
+          <div className="h-1.5 w-1.5 rounded-full bg-[var(--saffron)]" />
+        </div>
+      </div>
     </motion.div>
   );
 }

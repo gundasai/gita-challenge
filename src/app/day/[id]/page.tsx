@@ -168,7 +168,7 @@ export default function DayPage() {
                                         onClick={() => setQuizStarted(true)}
                                         className="rounded-full bg-[var(--saffron)] px-8 py-3 text-lg font-bold text-white transition hover:brightness-110"
                                     >
-                                        {dayData.id === 21 ? "Take Quiz and Complete the 21 Day Challenge" : `Take Quiz to Unlock Day ${dayData.id + 1}`}
+                                        {dayData.id === 21 ? "Take Quiz and Complete the Gita Wisdom Course" : `Take Quiz to Unlock Day ${dayData.id + 1}`}
                                     </button>
                                 )}
                             </div>
@@ -189,7 +189,7 @@ export default function DayPage() {
                                             Congratulations {user?.displayName || 'Seeker'}!
                                         </h2>
                                         <p className="mb-4 sm:mb-6 text-lg sm:text-2xl font-semibold text-white px-2">
-                                            You have completed the 21-Day Gita Challenge!
+                                            You have completed the Gita Wisdom Course!
                                         </p>
                                         <p className="mb-3 sm:mb-4 text-2xl sm:text-3xl font-bold text-[var(--saffron)]">
                                             Final Score: {quizResult.score} / {quizResult.maxScore}

@@ -171,7 +171,7 @@ export default function AdminDashboard() {
         XLSX.utils.book_append_sheet(wb, ws, "Users");
 
         // Generate Excel file and trigger download
-        XLSX.writeFile(wb, `gita-challenge-users-${new Date().toISOString().split('T')[0]}.xlsx`);
+        XLSX.writeFile(wb, `gita-wisdom-course-users-${new Date().toISOString().split('T')[0]}.xlsx`);
     };
 
     // Database cleanup functions
@@ -799,9 +799,9 @@ export default function AdminDashboard() {
             {activeTab === "settings" && (
                 <div className="space-y-6">
                     <div className="rounded-xl border border-white/10 bg-white/5 p-6">
-                        <h2 className="mb-4 text-xl font-bold text-[var(--saffron)]">Challenge Settings</h2>
+                        <h2 className="mb-4 text-xl font-bold text-[var(--saffron)]">Course Settings</h2>
                         <p className="mb-6 text-sm text-gray-400">
-                            Configure global settings for the 21-Day Gita Challenge.
+                            Configure global settings for the Gita Wisdom Course.
                         </p>
 
                         <div className="max-w-md space-y-6">

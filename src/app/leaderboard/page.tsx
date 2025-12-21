@@ -100,10 +100,9 @@ export default function LeaderboardPage() {
                 <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm overflow-hidden">
                     <div className="grid grid-cols-12 gap-4 border-b border-white/10 bg-white/5 p-4 text-sm font-medium text-gray-400">
                         <div className="col-span-1 text-center">Rank</div>
-                        <div className="col-span-5">Seeker</div>
+                        <div className="col-span-7">Seeker</div>
                         <div className="col-span-2 text-center">Score</div>
                         <div className="col-span-2 text-center">Days</div>
-                        <div className="col-span-2 text-center">Streak</div>
                     </div>
 
                     {users.map((user, index) => (
@@ -121,7 +120,7 @@ export default function LeaderboardPage() {
                                 {index === 2 && <Award className="text-amber-700" />}
                                 {index > 2 && <span className="text-gray-500 font-mono">#{index + 1}</span>}
                             </div>
-                            <div className="col-span-5 font-medium text-[var(--cream)]">
+                            <div className="col-span-7 font-medium text-[var(--cream)]">
                                 {user.displayName}
                             </div>
                             <div className="col-span-2 text-center font-bold text-[var(--saffron)]">
@@ -129,9 +128,6 @@ export default function LeaderboardPage() {
                             </div>
                             <div className="col-span-2 text-center text-gray-400">
                                 {user.daysCompleted.length}/21
-                            </div>
-                            <div className="col-span-2 text-center text-gray-400">
-                                {user.streak} 🔥
                             </div>
                         </motion.div>
                     ))}

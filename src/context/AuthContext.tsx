@@ -36,8 +36,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     // Logout
-    const logout = () => {
-        return signOut(auth);
+    const logout = async () => {
+        await signOut(auth);
+        setUser(null);
+        setUserData(null);
+        setUserRole(null);
     };
 
     // Create User Document in Firestore

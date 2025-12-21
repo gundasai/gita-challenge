@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "21-Day Gita Challenge | Transform Your Life",
-  description: "Embark on a transformative 21-day journey through the Bhagavad Gita",
+  title: "21-Day Gita Wisdom Course | Transform Your Life",
+  description: "Embark on a transformative 21-day journey through the Gita Wisdom Course",
   viewport: "width=device-width, initial-scale=1, maximum-scale=5",
 };
 

@@ -89,7 +89,7 @@ export default function SignupPage() {
                 <div className="text-center">
                     <h2 className="text-3xl font-bold text-[var(--saffron)]">Register Now</h2>
                     <p className="mt-2 text-base font-medium text-white">
-                        Join the 21-Day Gita Challenge
+                        Join the Gita Wisdom Course
                     </p>
                 </div>
 
