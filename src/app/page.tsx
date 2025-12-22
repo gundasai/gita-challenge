@@ -15,20 +15,52 @@ import {
   Coffee,
   MapPin,
   Share2,
-  Quote
+  Quote,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAccessControl } from "@/hooks/useAccessControl";
+
+interface Testimonial {
+  id: string;
+  name: string;
+  role: string;
+  message: string;
+}
+
+interface Volunteer {
+  id: string;
+  name: string;
+  role: string;
+}
 
 export default function Home() {
   const { user, userData, loading, userRole } = useAuth();
   const { canAccess, checking } = useAccessControl();
   const [daysData, setDaysData] = useState<any[]>([]);
+  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
+  const [volunteers, setVolunteers] = useState<Volunteer[]>([]);
+  const testimonialsRef = useRef<HTMLDivElement>(null);
+  const volunteersRef = useRef<HTMLDivElement>(null);
+
+  const scroll = (ref: React.RefObject<HTMLDivElement | null>, direction: 'left' | 'right') => {
+    if (ref.current) {
+      const scrollAmount = 300;
+      ref.current.scrollBy({
+        left: direction === 'right' ? scrollAmount : -scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+
 
   useEffect(() => {
     async function fetchData() {
+      // Fetch Days
       if (user) {
         try {
           const daysCol = collection(db, "days");
@@ -42,6 +74,42 @@ export default function Home() {
           console.error("Error fetching data:", error);
         }
       }
+
+      // Fetch Testimonials
+      try {
+        const testCol = collection(db, "testimonials");
+        const testSnap = await getDocs(testCol);
+        if (!testSnap.empty) {
+          setTestimonials(testSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Testimonial)));
+        } else {
+          // Default Testimonials
+          setTestimonials([
+            { id: "1", name: "Rahul Verma", role: "Software Engineer", message: "This course changed my perspective on stress management. Highly recommended!" },
+            { id: "2", name: "Priya Singh", role: "Product Manager", message: "The 20-minute daily format is perfect for my busy schedule. I feel more focused." },
+            { id: "3", name: "Amit Kumar", role: "Entrepreneur", message: "Ancient wisdom applied to modern problems. A truly transformative experience." },
+            { id: "4", name: "Sneha Gupta", role: "Medical Student", message: "The clarity I gained from these sessions has improved my studies significantly." },
+            { id: "5", name: "Vikram Malhotra", role: "Corporate Lead", message: "A must-do for anyone feeling the burnout of city life. Simple yet profound." }
+          ]);
+        }
+      } catch (err) { console.error("Error fetching testimonials", err); }
+
+      // Fetch Volunteers
+      try {
+        const volCol = collection(db, "volunteers");
+        const volSnap = await getDocs(volCol);
+        if (!volSnap.empty) {
+          setVolunteers(volSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Volunteer)));
+        } else {
+          // Default Volunteers
+          setVolunteers([
+            { id: "1", name: "Arjun Das", role: "Coordinator" },
+            { id: "2", name: "Meera Reddy", role: "Event Manager" },
+            { id: "3", name: "Suresh Nair", role: "Tech Support" },
+            { id: "4", name: "Karthik R", role: "Content Creator" },
+            { id: "5", name: "Ananya P", role: "Outreach Lead" }
+          ]);
+        }
+      } catch (err) { console.error("Error fetching volunteers", err); }
     }
     fetchData();
   }, [user]);
@@ -145,6 +213,67 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Speaker Section */}
+      <section className="py-24 px-4 bg-white/[0.02]">
+        <div className="mx-auto max-w-6xl">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="grid gap-12 md:grid-cols-12 items-center"
+          >
+            {/* Speaker Image */}
+            <div className="md:col-span-4 relative group">
+              <div className="relative rounded-3xl border border-white/10 bg-white/5 shadow-2xl overflow-hidden">
+                <img
+                  src="/speaker_photo.png"
+                  alt="HG Suvarna GaurHari Prabhuji"
+                  className="w-full h-auto object-cover"
+                />
+                <div className="bg-gradient-to-b from-gray-900 via-gray-900 to-black p-6 border-t border-white/10">
+                  <p className="text-[var(--saffron)] font-black text-xl tracking-wide mb-1">
+                    HG Suvarna GaurHari Prabhuji
+                  </p>
+                  <p className="text-white text-sm font-bold opacity-90">
+                    Monk, Educator & Life Coach
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Speaker Details */}
+            <div className="md:col-span-8 space-y-6">
+              <div className="space-y-2">
+                <div className="inline-block rounded-full bg-[var(--saffron)]/10 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-[var(--saffron)]">
+                  Meet Your Guide
+                </div>
+                <h2 className="text-3xl md:text-5xl font-bold text-white leading-tight">
+                  Empowering Minds through <span className="text-[var(--saffron)]">Ancient Wisdom</span> and Modern Wellness
+                </h2>
+              </div>
+
+              <div className="space-y-6 text-gray-300 text-lg leading-relaxed font-light">
+                <p>
+                  With over 13 years of dedicated full-time service, <span className="text-white font-medium">HG Suvarna GaurHari Prabhuji</span> has established himself as a transformative force in the fields of value-based education and holistic well-being. His work bridges the gap between ancient Indian wisdom and the complexities of modern life.
+                </p>
+
+                <p>
+                  A sought-after speaker at India’s premier institutions—including <span className="text-[var(--saffron)]/80">IITs, IIMs, NITK, and Manipal</span>—he specializes in empowering the next generation through youth-centric programs. Beyond academia, he is a trusted consultant for corporate organizations, offering high-impact seminars on life coaching and stress management.
+                </p>
+
+                <div className="bg-white/5 border-l-4 border-[var(--saffron)] p-6 rounded-r-xl italic text-gray-400">
+                  "His mission is rooted in the belief that true success is a balance of professional excellence and inner peace."
+                </div>
+
+                <p>
+                  By promoting natural lifestyles, environmental sustainability, and the profound lessons of the Bhagavad Gita and Ramayana, he continues to guide thousands toward a more conscious and fulfilling way of life.
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
       {/* The Context / Corporate Soul Section */}
       <section id="the-journey" className="relative py-24 px-4 overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
@@ -223,6 +352,104 @@ export default function Home() {
               title="Total Flexibility"
               description="Attend from anywhere—your PG, your office, or your home."
             />
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials Section */}
+      <section className="py-24 px-4 overflow-hidden relative">
+        <div className="mx-auto max-w-7xl space-y-12">
+          <div className="text-center">
+            <h2 className="text-3xl font-bold text-[var(--cream)] md:text-4xl">Voices of Transformation</h2>
+            <div className="h-1.5 w-24 bg-[var(--saffron)] mx-auto rounded-full mt-4"></div>
+          </div>
+
+          <div className="relative group/slider">
+            {/* Left Button */}
+            <button
+              onClick={() => scroll(testimonialsRef, 'left')}
+              className="absolute left-0 top-1/2 -translate-y-1/2 z-10 -ml-4 rounded-full bg-black/50 p-3 text-white backdrop-blur-sm border border-white/10 opacity-0 group-hover/slider:opacity-100 transition-opacity hover:bg-[var(--saffron)] disabled:opacity-0"
+              aria-label="Scroll left"
+            >
+              <ChevronLeft size={24} />
+            </button>
+
+            {/* Horizontal Drag Slider */}
+            <div
+              ref={testimonialsRef}
+              className="flex overflow-x-auto gap-6 pb-8 snap-x snap-mandatory px-4 scroll-smooth scrollbar-hide"
+            >
+              {testimonials.map((test) => (
+                <div
+                  key={test.id}
+                  className="snap-center shrink-0 w-[300px] md:w-[400px] rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur-sm relative flex flex-col justify-between"
+                >
+                  <Quote className="absolute top-6 right-6 text-[var(--saffron)]/20 h-12 w-12" />
+                  <p className="text-gray-300 italic mb-6 leading-relaxed">"{test.message}"</p>
+                  <div>
+                    <h4 className="text-[var(--saffron)] font-bold text-lg">{test.name}</h4>
+                    <p className="text-gray-500 text-sm">{test.role}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Right Button */}
+            <button
+              onClick={() => scroll(testimonialsRef, 'right')}
+              className="absolute right-0 top-1/2 -translate-y-1/2 z-10 -mr-4 rounded-full bg-black/50 p-3 text-white backdrop-blur-sm border border-white/10 opacity-0 group-hover/slider:opacity-100 transition-opacity hover:bg-[var(--saffron)]"
+              aria-label="Scroll right"
+            >
+              <ChevronRight size={24} />
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* Volunteers Section */}
+      <section className="py-16 px-4 bg-white/[0.02] overflow-hidden">
+        <div className="mx-auto max-w-7xl space-y-12">
+          <div className="text-center">
+            <h2 className="text-3xl font-bold text-[var(--cream)] md:text-4xl mb-2">Our Dedication Team</h2>
+            <p className="text-gray-400">The hearts and hands behind the mission</p>
+          </div>
+
+          <div className="relative group/slider">
+            {/* Left Button */}
+            <button
+              onClick={() => scroll(volunteersRef, 'left')}
+              className="absolute left-0 top-1/2 -translate-y-1/2 z-10 -ml-4 rounded-full bg-black/50 p-3 text-white backdrop-blur-sm border border-white/10 opacity-0 group-hover/slider:opacity-100 transition-opacity hover:bg-[var(--saffron)]"
+              aria-label="Scroll left"
+            >
+              <ChevronLeft size={24} />
+            </button>
+
+            <div
+              ref={volunteersRef}
+              className="flex overflow-x-auto gap-6 pb-8 snap-x snap-mandatory px-4 scroll-smooth scrollbar-hide"
+            >
+              {volunteers.map((vol) => (
+                <div
+                  key={vol.id}
+                  className="snap-center shrink-0 w-[250px] rounded-xl border border-white/10 bg-gradient-to-br from-white/5 to-transparent p-6 text-center hover:bg-white/10 transition"
+                >
+                  <div className="mx-auto mb-4 h-20 w-20 rounded-full bg-[var(--saffron)]/10 flex items-center justify-center text-[var(--saffron)] font-bold text-2xl border border-[var(--saffron)]/20">
+                    {vol.name.charAt(0)}
+                  </div>
+                  <h4 className="text-white font-bold text-lg mb-1">{vol.name}</h4>
+                  <p className="text-[var(--saffron)] text-sm">{vol.role}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Right Button */}
+            <button
+              onClick={() => scroll(volunteersRef, 'right')}
+              className="absolute right-0 top-1/2 -translate-y-1/2 z-10 -mr-4 rounded-full bg-black/50 p-3 text-white backdrop-blur-sm border border-white/10 opacity-0 group-hover/slider:opacity-100 transition-opacity hover:bg-[var(--saffron)]"
+              aria-label="Scroll right"
+            >
+              <ChevronRight size={24} />
+            </button>
           </div>
         </div>
       </section>

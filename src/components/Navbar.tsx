@@ -20,7 +20,10 @@ export default function Navbar() {
     return (
         <nav className="sticky top-0 z-50 w-full border-b border-white/10 bg-black/50 backdrop-blur-md">
             <div className="container mx-auto flex h-16 items-center justify-between px-4">
-                <Link href="/" className="flex items-center gap-2">
+                <Link href="/" className="flex items-center gap-3">
+                    <div className="rounded bg-white p-1">
+                        <img src="/iskcon_logo_v2.png" alt="ISKCON" className="h-8 w-auto object-contain" />
+                    </div>
                     <span className="text-xl font-bold bg-linear-to-r from-[var(--saffron)] to-[var(--cream)] bg-clip-text text-transparent">
                         Gita Wisdom Course
                     </span>

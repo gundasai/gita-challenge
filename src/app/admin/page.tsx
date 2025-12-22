@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { doc, getDoc, setDoc, updateDoc, collection, getDocs, addDoc, deleteDoc, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { Trash2, Edit, Plus, UserPlus, Save, Download } from "lucide-react";
+import { Trash2, Edit, Plus, UserPlus, Save, Download, X } from "lucide-react";
 import { courseData as staticData } from "@/data/courseData";
 import * as XLSX from 'xlsx';
 
@@ -26,6 +26,15 @@ export default function AdminDashboard() {
     const [explorerLoading, setExplorerLoading] = useState(false);
     const [editingDoc, setEditingDoc] = useState<{ id: string, data: string } | null>(null);
 
+    // Dynamic Content State
+    const [testimonials, setTestimonials] = useState<any[]>([]);
+    const [volunteers, setVolunteers] = useState<any[]>([]);
+    const [newTestimonial, setNewTestimonial] = useState({ name: "", role: "", message: "" });
+    const [newVolunteer, setNewVolunteer] = useState({ name: "", role: "" });
+    const [editingTestimonialId, setEditingTestimonialId] = useState<string | null>(null);
+    const [editingVolunteerId, setEditingVolunteerId] = useState<string | null>(null);
+
+
 
     useEffect(() => {
         if (!loading) {
@@ -33,10 +42,97 @@ export default function AdminDashboard() {
                 router.push("/");
             } else {
                 fetchDays();
+                fetchDays();
                 fetchStartDate();
+                fetchTestimonials();
+                fetchVolunteers();
             }
         }
     }, [user, userRole, loading, router]);
+
+    const fetchTestimonials = async () => {
+        try {
+            const snap = await getDocs(collection(db, "testimonials"));
+            setTestimonials(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        } catch (err) { console.error("Error fetching testimonials", err); }
+    };
+
+    const fetchVolunteers = async () => {
+        try {
+            const snap = await getDocs(collection(db, "volunteers"));
+            setVolunteers(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        } catch (err) { console.error("Error fetching volunteers", err); }
+    };
+
+    const handleAddTestimonial = async () => {
+        if (!newTestimonial.name || !newTestimonial.message) return alert("Name and Message required");
+        try {
+            await addDoc(collection(db, "testimonials"), newTestimonial);
+            setNewTestimonial({ name: "", role: "", message: "" });
+            fetchTestimonials();
+            setMessage("Testimonial Added!");
+        } catch (err) { alert("Error adding testimonial: " + err); }
+    };
+
+    const handleUpdateTestimonial = async () => {
+        if (!editingTestimonialId || !newTestimonial.name || !newTestimonial.message) return;
+        try {
+            await updateDoc(doc(db, "testimonials", editingTestimonialId), newTestimonial);
+            setNewTestimonial({ name: "", role: "", message: "" });
+            setEditingTestimonialId(null);
+            fetchTestimonials();
+            setMessage("Testimonial Updated!");
+        } catch (err) { alert("Error updating testimonial: " + err); }
+    };
+
+    const handleEditTestimonial = (t: any) => {
+        setNewTestimonial({ name: t.name, role: t.role, message: t.message });
+        setEditingTestimonialId(t.id);
+    };
+
+    const handleDeleteTestimonial = async (id: string) => {
+        if (!confirm("Delete this testimonial?")) return;
+        try {
+            await deleteDoc(doc(db, "testimonials", id));
+            fetchTestimonials();
+            setMessage("Testimonial Deleted!");
+        } catch (err) { alert("Error deleting testimonial: " + err); }
+    };
+
+    const handleAddVolunteer = async () => {
+        if (!newVolunteer.name || !newVolunteer.role) return alert("Name and Role required");
+        try {
+            await addDoc(collection(db, "volunteers"), newVolunteer);
+            setNewVolunteer({ name: "", role: "" });
+            fetchVolunteers();
+            setMessage("Volunteer Added!");
+        } catch (err) { alert("Error adding volunteer: " + err); }
+    };
+
+    const handleUpdateVolunteer = async () => {
+        if (!editingVolunteerId || !newVolunteer.name || !newVolunteer.role) return;
+        try {
+            await updateDoc(doc(db, "volunteers", editingVolunteerId), newVolunteer);
+            setNewVolunteer({ name: "", role: "" });
+            setEditingVolunteerId(null);
+            fetchVolunteers();
+            setMessage("Volunteer Updated!");
+        } catch (err) { alert("Error updating volunteer: " + err); }
+    };
+
+    const handleEditVolunteer = (v: any) => {
+        setNewVolunteer({ name: v.name, role: v.role });
+        setEditingVolunteerId(v.id);
+    };
+
+    const handleDeleteVolunteer = async (id: string) => {
+        if (!confirm("Delete this volunteer?")) return;
+        try {
+            await deleteDoc(doc(db, "volunteers", id));
+            fetchVolunteers();
+            setMessage("Volunteer Deleted!");
+        } catch (err) { alert("Error deleting volunteer: " + err); }
+    };
 
     const fetchStartDate = async () => {
         try {
@@ -82,6 +178,43 @@ export default function AdminDashboard() {
             fetchDays();
         } catch (err) {
             setMessage("Migration failed: " + err);
+        }
+    };
+
+    const defaultTestimonials = [
+        { name: "Rahul Verma", role: "Software Engineer", message: "This course changed my perspective on stress management. Highly recommended!" },
+        { name: "Priya Singh", role: "Product Manager", message: "The 20-minute daily format is perfect for my busy schedule. I feel more focused." },
+        { name: "Amit Kumar", role: "Entrepreneur", message: "Ancient wisdom applied to modern problems. A truly transformative experience." },
+        { name: "Sneha Gupta", role: "Medical Student", message: "The clarity I gained from these sessions has improved my studies significantly." },
+        { name: "Vikram Malhotra", role: "Corporate Lead", message: "A must-do for anyone feeling the burnout of city life. Simple yet profound." }
+    ];
+
+    const defaultVolunteers = [
+        { name: "Arjun Das", role: "Coordinator" },
+        { name: "Meera Reddy", role: "Event Manager" },
+        { name: "Suresh Nair", role: "Tech Support" },
+        { name: "Karthik R", role: "Content Creator" },
+        { name: "Ananya P", role: "Outreach Lead" }
+    ];
+
+    const handleLoadDefaults = async (type: 'testimonials' | 'volunteers') => {
+        if (!confirm(`Load default ${type}? This will add ${type === 'testimonials' ? 5 : 5} items to the database.`)) return;
+        try {
+            const data = type === 'testimonials' ? defaultTestimonials : defaultVolunteers;
+            const collectionName = type;
+            setMessage(`Loading default ${type}...`);
+
+            for (const item of data) {
+                await addDoc(collection(db, collectionName), item);
+            }
+
+            if (type === 'testimonials') fetchTestimonials();
+            else fetchVolunteers();
+
+            setMessage(`Default ${type} loaded successfully!`);
+        } catch (err) {
+            console.error(err);
+            setMessage(`Error loading defaults: ${err}`);
         }
     };
 
@@ -361,6 +494,15 @@ export default function AdminDashboard() {
                             }`}
                     >
                         Settings
+                    </button>
+                    <button
+                        onClick={() => setActiveTab("dynamic")}
+                        className={`flex-1 sm:flex-none rounded-lg px-3 sm:px-4 py-2 text-sm font-medium transition ${activeTab === "dynamic"
+                            ? "bg-[var(--saffron)] text-white"
+                            : "bg-white/5 text-gray-400 hover:bg-white/10"
+                            }`}
+                    >
+                        Dynamic Content
                     </button>
                 </div>
             </header>
@@ -793,6 +935,128 @@ export default function AdminDashboard() {
                             </div>
                         </div>
                     )}
+                </div>
+            )}
+
+            {activeTab === "dynamic" && (
+                <div className="space-y-8">
+                    {/* Testimonials Management */}
+                    <div className="rounded-xl border border-white/10 bg-white/5 p-6">
+                        <h2 className="mb-4 text-xl font-bold text-[var(--saffron)]">Manage Testimonials</h2>
+                        <div className="mb-6 grid gap-4 md:grid-cols-3">
+                            <input
+                                className="rounded bg-gray-800 p-2 text-white border border-gray-700 focus:border-[var(--saffron)]"
+                                placeholder="Name"
+                                value={newTestimonial.name}
+                                onChange={e => setNewTestimonial({ ...newTestimonial, name: e.target.value })}
+                            />
+                            <input
+                                className="rounded bg-gray-800 p-2 text-white border border-gray-700 focus:border-[var(--saffron)]"
+                                placeholder="Role (e.g. Engineer)"
+                                value={newTestimonial.role}
+                                onChange={e => setNewTestimonial({ ...newTestimonial, role: e.target.value })}
+                            />
+                            <div className="flex gap-2">
+                                <input
+                                    className="flex-1 rounded bg-gray-800 p-2 text-white border border-gray-700 focus:border-[var(--saffron)]"
+                                    placeholder="Message"
+                                    value={newTestimonial.message}
+                                    onChange={e => setNewTestimonial({ ...newTestimonial, message: e.target.value })}
+                                />
+                                {editingTestimonialId ? (
+                                    <div className="flex gap-2">
+                                        <button onClick={handleUpdateTestimonial} className="bg-blue-600 px-4 py-2 text-white rounded hover:bg-blue-700"><Save size={18} /></button>
+                                        <button onClick={() => { setEditingTestimonialId(null); setNewTestimonial({ name: "", role: "", message: "" }); }} className="bg-gray-600 px-4 py-2 text-white rounded hover:bg-gray-700"><X size={18} /></button>
+                                    </div>
+                                ) : (
+                                    <button onClick={handleAddTestimonial} className="bg-green-600 px-4 py-2 text-white rounded hover:bg-green-700"><Plus size={18} /></button>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="space-y-4">
+                            {testimonials.length === 0 ? (
+                                <div className="text-center py-8 border border-dashed border-white/10 rounded">
+                                    <p className="text-gray-400 mb-4">No testimonials found in database.</p>
+                                    <button
+                                        onClick={() => handleLoadDefaults('testimonials')}
+                                        className="bg-[var(--saffron)] px-4 py-2 text-white rounded hover:brightness-110"
+                                    >
+                                        Load Default Testimonials
+                                    </button>
+                                </div>
+                            ) : (
+                                testimonials.map((t) => (
+                                    <div key={t.id} className="flex items-center justify-between rounded bg-white/5 p-4">
+                                        <div>
+                                            <h4 className="font-bold text-white">{t.name} <span className="text-xs text-gray-400">({t.role})</span></h4>
+                                            <p className="text-sm text-gray-300 italic">"{t.message}"</p>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <button onClick={() => handleEditTestimonial(t)} className="text-blue-400 hover:text-blue-300"><Edit size={18} /></button>
+                                            <button onClick={() => handleDeleteTestimonial(t.id)} className="text-red-400 hover:text-red-300"><Trash2 size={18} /></button>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Volunteers Management */}
+                    <div className="rounded-xl border border-white/10 bg-white/5 p-6">
+                        <h2 className="mb-4 text-xl font-bold text-[var(--saffron)]">Manage Volunteers</h2>
+                        <div className="mb-6 grid gap-4 md:grid-cols-3">
+                            <input
+                                className="rounded bg-gray-800 p-2 text-white border border-gray-700 focus:border-[var(--saffron)]"
+                                placeholder="Name"
+                                value={newVolunteer.name}
+                                onChange={e => setNewVolunteer({ ...newVolunteer, name: e.target.value })}
+                            />
+                            <div className="flex gap-2 md:col-span-2">
+                                <input
+                                    className="flex-1 rounded bg-gray-800 p-2 text-white border border-gray-700 focus:border-[var(--saffron)]"
+                                    placeholder="Role (e.g. Graphic Designer)"
+                                    value={newVolunteer.role}
+                                    onChange={e => setNewVolunteer({ ...newVolunteer, role: e.target.value })}
+                                />
+                                {editingVolunteerId ? (
+                                    <div className="flex gap-2">
+                                        <button onClick={handleUpdateVolunteer} className="bg-blue-600 px-4 py-2 text-white rounded hover:bg-blue-700"><Save size={18} /></button>
+                                        <button onClick={() => { setEditingVolunteerId(null); setNewVolunteer({ name: "", role: "" }); }} className="bg-gray-600 px-4 py-2 text-white rounded hover:bg-gray-700"><X size={18} /></button>
+                                    </div>
+                                ) : (
+                                    <button onClick={handleAddVolunteer} className="bg-green-600 px-4 py-2 text-white rounded hover:bg-green-700"><Plus size={18} /></button>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                            {volunteers.length === 0 ? (
+                                <div className="col-span-full text-center py-8 border border-dashed border-white/10 rounded">
+                                    <p className="text-gray-400 mb-4">No volunteers found in database.</p>
+                                    <button
+                                        onClick={() => handleLoadDefaults('volunteers')}
+                                        className="bg-[var(--saffron)] px-4 py-2 text-white rounded hover:brightness-110"
+                                    >
+                                        Load Default Volunteers
+                                    </button>
+                                </div>
+                            ) : (
+                                volunteers.map((v) => (
+                                    <div key={v.id} className="flex items-center justify-between rounded bg-white/5 p-4">
+                                        <div>
+                                            <h4 className="font-bold text-white">{v.name}</h4>
+                                            <p className="text-sm text-[var(--saffron)]">{v.role}</p>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <button onClick={() => handleEditVolunteer(v)} className="text-blue-400 hover:text-blue-300"><Edit size={18} /></button>
+                                            <button onClick={() => handleDeleteVolunteer(v.id)} className="text-red-400 hover:text-red-300"><Trash2 size={18} /></button>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
                 </div>
             )}
 
