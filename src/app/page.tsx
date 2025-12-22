@@ -227,12 +227,12 @@ export default function Home() {
               <div className="relative rounded-3xl border border-white/10 bg-white/5 shadow-2xl overflow-hidden">
                 <img
                   src="/speaker_photo.png"
-                  alt="HG Suvarna GaurHari Prabhuji"
+                  alt="HG Suvarna GaurHari Das"
                   className="w-full h-auto object-cover"
                 />
                 <div className="bg-gradient-to-b from-gray-900 via-gray-900 to-black p-6 border-t border-white/10">
                   <p className="text-[var(--saffron)] font-black text-xl tracking-wide mb-1">
-                    HG Suvarna GaurHari Prabhuji
+                    HG Suvarna GaurHari Das
                   </p>
                   <p className="text-white text-sm font-bold opacity-90">
                     Monk, Educator & Life Coach
@@ -254,15 +254,15 @@ export default function Home() {
 
               <div className="space-y-6 text-gray-300 text-lg leading-relaxed font-light">
                 <p>
-                  With over 13 years of dedicated full-time service, <span className="text-white font-medium">HG Suvarna GaurHari Prabhuji</span> has established himself as a transformative force in the fields of value-based education and holistic well-being. His work bridges the gap between ancient Indian wisdom and the complexities of modern life.
+                  With over 13 years of dedicated full-time service, <span className="text-white font-medium">Suvarna GauraHari das</span> has established himself as a transformative force in the fields of value-based education and holistic well-being. His work bridges the gap between ancient Indian wisdom and the complexities of modern life.
                 </p>
 
                 <p>
-                  A sought-after speaker at India’s premier institutions—including <span className="text-[var(--saffron)]/80">IITs, IIMs, NITK, and Manipal</span>—he specializes in empowering the next generation through youth-centric programs. Beyond academia, he is a trusted consultant for corporate organizations, offering high-impact seminars on life coaching and stress management.
+                  He has a vast experience of sharing the wisdom of the Bhagavad Gita. He has delivered talks at India’s premier institutions—including <span className="text-[var(--saffron)]/80">IITs, IIMs, NITK, and Manipal etc.</span> He specializes in empowering the next generation through youth-centric programs. Beyond academia, he is a trusted consultant for individuals and corporate organizations , offering high-impact seminars on lifestyle and stress management.
                 </p>
 
                 <div className="bg-white/5 border-l-4 border-[var(--saffron)] p-6 rounded-r-xl italic text-gray-400">
-                  "His mission is rooted in the belief that true success is a balance of professional excellence and inner peace."
+                  "His mission is rooted in the belief that true success is a balance of professional excellence, ethics and purpose to serve."
                 </div>
 
                 <p>
