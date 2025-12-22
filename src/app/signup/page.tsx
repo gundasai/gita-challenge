@@ -12,6 +12,8 @@ export default function SignupPage() {
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
+    const [dob, setDob] = useState("");
     const [whatsapp, setWhatsapp] = useState("");
     const [company, setCompany] = useState("");
     const [city, setCity] = useState("");
@@ -55,6 +57,21 @@ export default function SignupPage() {
             errors.password = "Password must be at least 6 characters long";
         }
 
+        // Confirm Password validation
+        if (password !== confirmPassword) {
+            errors.confirmPassword = "Passwords do not match";
+        }
+
+        // Date of Birth validation
+        if (!dob) {
+            errors.dob = "Date of Birth is required";
+        } else {
+            const birthYear = new Date(dob).getFullYear();
+            if (birthYear < 1900 || birthYear > 2020) {
+                errors.dob = "Please meet the Age Requirements";
+            }
+        }
+
         setValidationErrors(errors);
         return Object.keys(errors).length === 0;
     };
@@ -73,7 +90,7 @@ export default function SignupPage() {
 
         try {
             console.log("Attempting signup...");
-            await signup(email, password, name, whatsapp, company, city);
+            await signup(email, password, name, whatsapp, company, city, dob);
             console.log("Signup successful, redirecting to waiting page...");
             // Redirect to waiting page after successful registration
             window.location.href = "/waiting";
@@ -133,6 +150,35 @@ export default function SignupPage() {
                             />
                             {validationErrors.name && (
                                 <p className="mt-1 text-xs text-red-400">{validationErrors.name}</p>
+                            )}
+                        </div>
+
+
+
+
+                        {/* Date of Birth Field */}
+                        <div>
+                            <label htmlFor="dob" className="sr-only">Date of Birth</label>
+                            <input
+                                id="dob"
+                                name="dob"
+                                type="date"
+                                required
+                                min="1900-01-01"
+                                max="2020-12-31"
+                                className={`relative block w-full rounded border ${validationErrors.dob ? 'border-red-500' : 'border-white/10'} bg-black/20 px-3 py-2 text-[var(--foreground)] placeholder-gray-500 focus:border-[var(--saffron)] focus:outline-none focus:ring-1 focus:ring-[var(--saffron)] sm:text-sm`}
+                                value={dob}
+                                onChange={(e) => {
+                                    setDob(e.target.value);
+                                    if (validationErrors.dob) {
+                                        const errors = { ...validationErrors };
+                                        delete errors.dob;
+                                        setValidationErrors(errors);
+                                    }
+                                }}
+                            />
+                            {validationErrors.dob && (
+                                <p className="mt-1 text-xs text-red-400">{validationErrors.dob}</p>
                             )}
                         </div>
 
@@ -268,6 +314,32 @@ export default function SignupPage() {
                             />
                             {validationErrors.password && (
                                 <p className="mt-1 text-xs text-red-400">{validationErrors.password}</p>
+                            )}
+                        </div>
+
+                        {/* Confirm Password Field */}
+                        <div>
+                            <label htmlFor="confirmPassword" className="sr-only">Confirm Password</label>
+                            <input
+                                id="confirmPassword"
+                                name="confirmPassword"
+                                type="password"
+                                required
+                                minLength={6}
+                                className={`relative block w-full rounded border ${validationErrors.confirmPassword ? 'border-red-500' : 'border-white/10'} bg-black/20 px-3 py-2 text-[var(--foreground)] placeholder-gray-500 focus:border-[var(--saffron)] focus:outline-none focus:ring-1 focus:ring-[var(--saffron)] sm:text-sm`}
+                                placeholder="Confirm Password"
+                                value={confirmPassword}
+                                onChange={(e) => {
+                                    setConfirmPassword(e.target.value);
+                                    if (validationErrors.confirmPassword) {
+                                        const errors = { ...validationErrors };
+                                        delete errors.confirmPassword;
+                                        setValidationErrors(errors);
+                                    }
+                                }}
+                            />
+                            {validationErrors.confirmPassword && (
+                                <p className="mt-1 text-xs text-red-400">{validationErrors.confirmPassword}</p>
                             )}
                         </div>
                     </div>
