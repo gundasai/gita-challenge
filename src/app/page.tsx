@@ -557,6 +557,7 @@ export default function Home() {
               </div>
               <h3 className="mb-2 text-xl font-bold text-white">Address</h3>
               <p className="text-gray-400">
+                <strong className="block text-white mb-1">ISKCON South Bengaluru</strong>
                 3rd Main Road, Samvruddi Enclave, 2nd Stage, Kumaraswamy Layout, Bengaluru, Karnataka 560061
               </p>
             </div>
