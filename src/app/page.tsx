@@ -17,7 +17,9 @@ import {
   Share2,
   Quote,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Phone,
+  Mail
 } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import { collection, getDocs } from "firebase/firestore";
@@ -516,6 +518,50 @@ export default function Home() {
             <ArrowRight size={20} />
           </Link>
         </motion.div>
+      </section>
+
+      {/* Contact Us Section */}
+      <section className="py-24 px-4 bg-white/[0.02] border-t border-white/5">
+        <div className="mx-auto max-w-7xl">
+          <div className="text-center space-y-4 mb-16">
+            <h2 className="text-3xl font-bold text-[var(--cream)] md:text-4xl">Contact Us</h2>
+            <div className="h-1.5 w-24 bg-[var(--saffron)] mx-auto rounded-full"></div>
+            <p className="text-gray-400 max-w-2xl mx-auto">
+              Have questions? We'd love to hear from you. Reach out to us through any of the following channels.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Phone */}
+            <div className="rounded-2xl border border-white/5 bg-white/5 p-8 text-center backdrop-blur-sm transition-all hover:bg-[var(--saffron)]/5 group">
+              <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--saffron)]/10 text-[var(--saffron)] group-hover:scale-110 transition-transform">
+                <Phone size={32} />
+              </div>
+              <h3 className="mb-2 text-xl font-bold text-white">Phone</h3>
+              <p className="text-gray-400">7337728106 / 9822692371</p>
+            </div>
+
+            {/* Email */}
+            <div className="rounded-2xl border border-white/5 bg-white/5 p-8 text-center backdrop-blur-sm transition-all hover:bg-[var(--saffron)]/5 group">
+              <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--saffron)]/10 text-[var(--saffron)] group-hover:scale-110 transition-transform">
+                <Mail size={32} />
+              </div>
+              <h3 className="mb-2 text-xl font-bold text-white">Email</h3>
+              <p className="text-gray-400">iyfsouthbengaluru@gmail.com</p>
+            </div>
+
+            {/* Address */}
+            <div className="rounded-2xl border border-white/5 bg-white/5 p-8 text-center backdrop-blur-sm transition-all hover:bg-[var(--saffron)]/5 group">
+              <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--saffron)]/10 text-[var(--saffron)] group-hover:scale-110 transition-transform">
+                <MapPin size={32} />
+              </div>
+              <h3 className="mb-2 text-xl font-bold text-white">Address</h3>
+              <p className="text-gray-400">
+                3rd Main Road, Samvruddi Enclave, 2nd Stage, Kumaraswamy Layout, Bengaluru, Karnataka 560061
+              </p>
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* Mini Footer */}
