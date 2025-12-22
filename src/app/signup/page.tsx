@@ -13,7 +13,7 @@ export default function SignupPage() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
-    const [dob, setDob] = useState("");
+    const [gender, setGender] = useState("");
     const [whatsapp, setWhatsapp] = useState("");
     const [company, setCompany] = useState("");
     const [city, setCity] = useState("");
@@ -62,14 +62,11 @@ export default function SignupPage() {
             errors.confirmPassword = "Passwords do not match";
         }
 
-        // Date of Birth validation
-        if (!dob) {
-            errors.dob = "Date of Birth is required";
-        } else {
-            const birthYear = new Date(dob).getFullYear();
-            if (birthYear < 1900 || birthYear > 2020) {
-                errors.dob = "Please meet the Age Requirements";
-            }
+
+
+        // Gender validation
+        if (!gender) {
+            errors.gender = "Please select your gender";
         }
 
         setValidationErrors(errors);
@@ -90,7 +87,9 @@ export default function SignupPage() {
 
         try {
             console.log("Attempting signup...");
-            await signup(email, password, name, whatsapp, company, city, dob);
+            console.log("Attempting signup...");
+            await signup(email, password, name, whatsapp, company, city, gender);
+            console.log("Signup successful, redirecting to waiting page...");
             console.log("Signup successful, redirecting to waiting page...");
             // Redirect to waiting page after successful registration
             window.location.href = "/waiting";
@@ -156,29 +155,33 @@ export default function SignupPage() {
 
 
 
-                        {/* Date of Birth Field */}
+
+
+                        {/* Gender Field */}
                         <div>
-                            <label htmlFor="dob" className="sr-only">Date of Birth</label>
-                            <input
-                                id="dob"
-                                name="dob"
-                                type="date"
+                            <label htmlFor="gender" className="sr-only">Gender</label>
+                            <select
+                                id="gender"
+                                name="gender"
                                 required
-                                min="1900-01-01"
-                                max="2020-12-31"
-                                className={`relative block w-full rounded border ${validationErrors.dob ? 'border-red-500' : 'border-white/10'} bg-black/20 px-3 py-2 text-[var(--foreground)] placeholder-gray-500 focus:border-[var(--saffron)] focus:outline-none focus:ring-1 focus:ring-[var(--saffron)] sm:text-sm`}
-                                value={dob}
+                                className={`relative block w-full rounded border ${validationErrors.gender ? 'border-red-500' : 'border-white/10'} bg-black/20 px-3 py-2 text-[var(--foreground)] focus:border-[var(--saffron)] focus:outline-none focus:ring-1 focus:ring-[var(--saffron)] sm:text-sm ${!gender ? 'text-gray-500' : ''}`}
+                                value={gender}
                                 onChange={(e) => {
-                                    setDob(e.target.value);
-                                    if (validationErrors.dob) {
+                                    setGender(e.target.value);
+                                    if (validationErrors.gender) {
                                         const errors = { ...validationErrors };
-                                        delete errors.dob;
+                                        delete errors.gender;
                                         setValidationErrors(errors);
                                     }
                                 }}
-                            />
-                            {validationErrors.dob && (
-                                <p className="mt-1 text-xs text-red-400">{validationErrors.dob}</p>
+                            >
+                                <option value="" disabled>Gender</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Others">Others</option>
+                            </select>
+                            {validationErrors.gender && (
+                                <p className="mt-1 text-xs text-red-400">{validationErrors.gender}</p>
                             )}
                         </div>
 

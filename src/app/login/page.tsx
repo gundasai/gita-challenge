@@ -17,7 +17,6 @@ export default function LoginPage() {
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const [isForgotPassword, setIsForgotPassword] = useState(false);
-    const [dob, setDob] = useState("");
     const [resetMessage, setResetMessage] = useState("");
     const [isResetting, setIsResetting] = useState(false);
 
@@ -56,17 +55,7 @@ export default function LoginPage() {
                 throw new Error("No account found with this email.");
             }
 
-            const userDoc = querySnapshot.docs[0].data();
 
-            // If user has no DoB saved (legacy user), we might need a fallback or fail.
-            // Strict security: Fail.
-            if (!userDoc.dob) {
-                throw new Error("Date of Birth not set for this account. Contact admin.");
-            }
-
-            if (userDoc.dob !== dob) {
-                throw new Error("Date of Birth does not match our records.");
-            }
 
             // 2. Send Reset Email
             await sendPasswordResetEmail(auth, email);
@@ -125,17 +114,7 @@ export default function LoginPage() {
                                     onChange={(e) => setEmail(e.target.value)}
                                 />
                             </div>
-                            <div>
-                                <label htmlFor="reset-dob" className="sr-only">Date of Birth</label>
-                                <input
-                                    id="reset-dob"
-                                    type="date"
-                                    required
-                                    className="relative block w-full rounded border border-white/10 bg-black/20 px-3 py-2 text-[var(--foreground)] placeholder-gray-500 focus:border-[var(--saffron)] focus:outline-none focus:ring-1 focus:ring-[var(--saffron)] sm:text-sm"
-                                    value={dob}
-                                    onChange={(e) => setDob(e.target.value)}
-                                />
-                            </div>
+
                         </div>
 
                         <div className="flex flex-col gap-3">
