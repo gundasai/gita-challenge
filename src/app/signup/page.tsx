@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 export default function SignupPage() {
-    const { signup } = useAuth();
+    const { signup, logout } = useAuth();
     const router = useRouter();
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
@@ -21,6 +23,26 @@ export default function SignupPage() {
     const [validationErrors, setValidationErrors] = useState<{ [key: string]: string }>({});
 
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [showSuccess, setShowSuccess] = useState(false);
+    const [hasStarted, setHasStarted] = useState(false);
+
+    useEffect(() => {
+        const checkStartDate = async () => {
+            try {
+                const configDoc = await getDoc(doc(db, "settings", "courseConfig"));
+                if (configDoc.exists()) {
+                    const data = configDoc.data();
+                    if (data.startDate) {
+                        const date = data.startDate.toDate ? data.startDate.toDate() : new Date(data.startDate);
+                        if (new Date() > date) setHasStarted(true);
+                    }
+                }
+            } catch (error) {
+                console.error("Error checking start date:", error);
+            }
+        };
+        checkStartDate();
+    }, []);
 
     const validateForm = () => {
         const errors: { [key: string]: string } = {};
@@ -89,16 +111,84 @@ export default function SignupPage() {
             console.log("Attempting signup...");
             console.log("Attempting signup...");
             await signup(email, password, name, whatsapp, company, city, gender);
-            console.log("Signup successful, redirecting to waiting page...");
-            console.log("Signup successful, redirecting to waiting page...");
-            // Redirect to waiting page after successful registration
-            window.location.href = "/waiting";
+            console.log("Signup successful");
+
+            if (hasStarted) {
+                // If challenge started, logout and show success message
+                try {
+                    await logout();
+                } catch (e) {
+                    console.error("Logout error", e);
+                }
+                setShowSuccess(true);
+                setIsSubmitting(false); // Stop loading state
+            } else {
+                // Redirect to waiting page if not started
+                window.location.href = "/waiting";
+            }
         } catch (err: any) {
             console.error("Signup Error:", err);
             setError("Failed to create account: " + err.message);
             setIsSubmitting(false);
         }
     };
+
+    if (showSuccess) {
+        return (
+            <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-[var(--background)] px-4 py-8">
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="w-full max-w-md rounded-xl border border-white/10 bg-white/5 p-8 backdrop-blur-xl text-center"
+                >
+                    <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-green-500/10 text-green-500 border border-green-500/20">
+                        <svg className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                    </div>
+
+                    <h2 className="text-3xl font-bold text-[var(--saffron)] mb-2">Registration Successful!</h2>
+                    <p className="text-gray-300 mb-8">
+                        Welcome to the Gita Wisdom Course.
+                    </p>
+
+                    <div className="space-y-6">
+                        <div className="rounded-xl bg-white/5 p-6 border border-white/10">
+                            <p className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-[var(--saffron)] mb-3">
+                                Crucial Next Step
+                            </p>
+                            <p className="text-sm text-gray-300 mb-4">
+                                Join our WhatsApp group to stay updated with daily challenges and announcements.
+                            </p>
+                            <a
+                                href="https://chat.whatsapp.com/CgUtLgcTUsB16xgmuKGDwf"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center justify-center gap-2 w-full rounded-lg bg-[#25D366] px-4 py-3 font-bold text-white transition-transform hover:scale-[1.02] active:scale-[0.98]"
+                            >
+                                <svg className="h-5 w-5 fill-current" viewBox="0 0 24 24">
+                                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L0 24l6.335-1.662c1.72.937 3.659 1.432 5.631 1.433h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
+                                </svg>
+                                Join WhatsApp Group
+                            </a>
+                        </div>
+
+                        <div className="pt-4 border-t border-white/10">
+                            <p className="text-white font-medium mb-4">
+                                Please sign in to access the course.
+                            </p>
+                            <Link
+                                href="/login"
+                                className="inline-block w-full rounded bg-[var(--saffron)] px-4 py-3 text-sm font-bold text-white hover:brightness-110 transition-all"
+                            >
+                                Sign In Now
+                            </Link>
+                        </div>
+                    </div>
+                </motion.div>
+            </div>
+        );
+    }
 
     return (
         <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-[var(--background)] px-4 py-8">

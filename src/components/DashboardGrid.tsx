@@ -12,9 +12,10 @@ interface Day {
     isLocked: boolean;
 }
 
-export default function DashboardGrid({ currentDay, daysCompleted, daysData }: { currentDay: number; daysCompleted: boolean[]; daysData?: any[] }) {
-    const days = Array.from({ length: 21 }, (_, i) => {
-        const id = i + 1;
+export default function DashboardGrid({ currentDay, daysCompleted, daysData }: { currentDay: number; daysCompleted: number[]; daysData?: any[] }) {
+    const days = Array.from({ length: 22 }, (_, i) => {
+        // IDs from 0 to 21. i starts at 0.
+        const id = i;
         const dayInfo = daysData?.find(d => d.id === id);
 
         let isLocked = id > currentDay;
@@ -27,9 +28,9 @@ export default function DashboardGrid({ currentDay, daysCompleted, daysData }: {
 
         return {
             id,
-            title: `Day ${id}`,
-            description: "Unlock wisdom",
-            isCompleted: daysCompleted[i] || false,
+            title: id === 0 ? "Intro" : `Day ${id}`,
+            description: id === 0 ? "Introduction" : "Unlock wisdom",
+            isCompleted: daysCompleted.includes(id) || false,
             isLocked,
             unlockDate: dayInfo?.unlockDate
         };

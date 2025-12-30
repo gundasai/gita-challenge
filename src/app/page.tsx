@@ -131,9 +131,9 @@ export default function Home() {
 
   // Dashboard View (Logged in + Access)
   if (user && (canAccess || userRole === "admin")) {
-    const currentDay = userData?.currentDay || 1;
+    const currentDay = userData?.currentDay !== undefined ? userData.currentDay : 0;
     const daysCompleted = userData?.daysCompleted || [];
-    const daysCompletedBool = Array(21).fill(false).map((_, i) => daysCompleted.includes(i + 1));
+    // daysCompleted is array of IDs (e.g. [0, 1]).
     const completedCount = daysCompleted.length;
 
     return (
@@ -152,12 +152,12 @@ export default function Home() {
               <div className="h-8 w-px bg-white/10"></div>
               <div className="text-center">
                 <p className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Completed</p>
-                <p className="text-xl font-bold text-[var(--cream)]">{completedCount}/21</p>
+                <p className="text-xl font-bold text-[var(--cream)]">{completedCount}/22</p>
               </div>
             </div>
           </header>
 
-          <DashboardGrid currentDay={currentDay} daysCompleted={daysCompletedBool} daysData={daysData} />
+          <DashboardGrid currentDay={currentDay} daysCompleted={daysCompleted} daysData={daysData} />
         </div>
       </main>
     );

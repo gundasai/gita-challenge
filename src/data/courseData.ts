@@ -49,10 +49,32 @@ const topics = [
     { letter: "U", title: "Ultimate Destination", description: "The supreme goal of human life" }
 ];
 
-export const courseData = topics.map((topic, index) => ({
-    id: index + 1,
-    title: topic.title,
-    description: topic.description,
-    videoId: COMMON_VIDEO_ID,
-    quiz: [...commonQuiz] // Create a copy for each day
-}));
+export const courseData = [
+    {
+        id: 0,
+        title: "Introduction",
+        description: "Welcome to the 21-Day Gita Challenge",
+        videoId: COMMON_VIDEO_ID, // Using common video ID as placeholder, can be updated specific intro video
+        quiz: [
+            {
+                id: 1,
+                question: "What is the primary purpose of this 21-Day Challenge?",
+                options: [
+                    "To become a scholar",
+                    "To change our habits and find inner peace",
+                    "To memorize verses",
+                    "To win a competition"
+                ],
+                correctAnswer: 1,
+                marks: 5
+            }
+        ]
+    },
+    ...topics.map((topic, index) => ({
+        id: index + 1,
+        title: topic.title,
+        description: topic.description,
+        videoId: COMMON_VIDEO_ID,
+        quiz: [...commonQuiz] // Create a copy for each day
+    }))
+];

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { collection, getDocs, query, orderBy, limit } from "firebase/firestore";
+import { collection, getDocs, doc, getDoc, query, orderBy, limit } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { motion } from "framer-motion";
 import { Trophy, Medal, Award } from "lucide-react";
@@ -18,6 +18,7 @@ interface LeaderboardUser {
     daysCompleted: number[];
     streak: number;
     totalScore: number;
+    lastScoreUpdatedAt?: any; // Timestamp
     role?: string;
 }
 
@@ -38,10 +39,16 @@ export default function LeaderboardPage() {
 
     const fetchLeaderboard = async () => {
         try {
-            // Firestore doesn't support array length sorting directly without a computed field.
-            // For now, we fetch a limit and sort client side, or assume we have 'exp' or similar field.
-            // Let's use 'streak' as a proxy for engagement for now, or just fetch all (if small app)
-            // Ideally we would add a 'completedCount' field to users as they finish days.
+            // Fetch Limit first
+            let displayLimit = 50;
+            try {
+                const configDoc = await getDoc(doc(db, "settings", "courseConfig"));
+                if (configDoc.exists() && configDoc.data().leaderboardLimit) {
+                    displayLimit = configDoc.data().leaderboardLimit;
+                }
+            } catch (e) {
+                console.error("Error fetching display limit", e);
+            }
 
             const usersCol = collection(db, "users");
             const snapshot = await getDocs(usersCol);
@@ -54,17 +61,31 @@ export default function LeaderboardPage() {
                     daysCompleted: data.daysCompleted || [],
                     streak: data.streak || 0,
                     totalScore: data.totalScore || 0,
+                    lastScoreUpdatedAt: data.lastScoreUpdatedAt, // May be undefined for old records
                     role: data.role || "user",
                     // Calculated field for sorting logic if needed, but we use totalScore now
                     score: data.totalScore || 0
                 };
             });
 
-            // Sort by Total Score > Days Completed > Name (Alphabetical)
+            // Sort by Total Score > Time Achieved (Earlier is better) > Days Completed > Name
             leaderboardData.sort((a, b) => {
                 if (b.totalScore !== a.totalScore) {
                     return b.totalScore - a.totalScore; // Higher score first
                 }
+
+                // Tie breaker: Who scored first? (Earlier timestamp wins)
+                // If one has timestamp and other doesn't, one with timestamp wins (assumed active)
+                if (a.lastScoreUpdatedAt && b.lastScoreUpdatedAt) {
+                    const timeA = a.lastScoreUpdatedAt.toMillis ? a.lastScoreUpdatedAt.toMillis() : 0;
+                    const timeB = b.lastScoreUpdatedAt.toMillis ? b.lastScoreUpdatedAt.toMillis() : 0;
+                    if (timeA !== timeB) return timeA - timeB; // Ascending time
+                } else if (a.lastScoreUpdatedAt) {
+                    return -1; // a wins
+                } else if (b.lastScoreUpdatedAt) {
+                    return 1; // b wins
+                }
+
                 if (b.daysCompleted.length !== a.daysCompleted.length) {
                     return b.daysCompleted.length - a.daysCompleted.length; // More days first
                 }
@@ -73,8 +94,7 @@ export default function LeaderboardPage() {
 
             // Filter out admins
             const filteredUsers = leaderboardData.filter(user => user.role !== 'admin');
-
-            setUsers(filteredUsers.slice(0, 50));
+            setUsers(filteredUsers.slice(0, displayLimit));
         } catch (error) {
             console.error("Error fetching leaderboard:", error);
         } finally {
@@ -127,7 +147,7 @@ export default function LeaderboardPage() {
                                 {user.totalScore}
                             </div>
                             <div className="col-span-2 text-center text-gray-400">
-                                {user.daysCompleted.length}/21
+                                {user.daysCompleted.length}/22
                             </div>
                         </motion.div>
                     ))}

@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { doc, getDoc, setDoc, updateDoc, collection, getDocs, addDoc, deleteDoc, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { Trash2, Edit, Plus, UserPlus, Save, Download, X } from "lucide-react";
+import { Trash2, Edit, Plus, UserPlus, Save, Download, X, AlertTriangle } from "lucide-react";
 import { courseData as staticData } from "@/data/courseData";
 import * as XLSX from 'xlsx';
 
@@ -19,6 +19,7 @@ export default function AdminDashboard() {
     const [message, setMessage] = useState("");
     const [activeTab, setActiveTab] = useState("content"); // content | admins | database | settings
     const [startDate, setStartDate] = useState("");
+    const [leaderboardLimit, setLeaderboardLimit] = useState(50);
 
     // Database Explorer State
     const [explorerCollection, setExplorerCollection] = useState("users");
@@ -145,6 +146,9 @@ export default function AdminDashboard() {
                     const formatted = date.toISOString().slice(0, 16);
                     setStartDate(formatted);
                 }
+                if (data.leaderboardLimit) {
+                    setLeaderboardLimit(data.leaderboardLimit);
+                }
             }
         } catch (error) {
             console.error("Error fetching start date:", error);
@@ -178,6 +182,22 @@ export default function AdminDashboard() {
             fetchDays();
         } catch (err) {
             setMessage("Migration failed: " + err);
+        }
+    };
+
+    const handleAddDay0 = async () => {
+        try {
+            const day0 = staticData.find(d => d.id === 0);
+            if (!day0) {
+                setMessage("Error: Day 0 data not found in source code.");
+                return;
+            }
+            await setDoc(doc(db, "days", "day_0"), day0);
+            setMessage("✅ Day 0 (Introduction) has been created successfully!");
+            fetchDays();
+        } catch (err) {
+            console.error(err);
+            setMessage("Error adding Day 0: " + err);
         }
     };
 
@@ -219,7 +239,7 @@ export default function AdminDashboard() {
     };
 
     const handleSaveDay = async () => {
-        if (!editForm.id) return;
+        if (editForm.id === undefined || editForm.id === null) return;
         try {
             await setDoc(doc(db, "days", `day_${editForm.id}`), editForm);
             setMessage(`Day ${editForm.id} updated!`);
@@ -320,7 +340,7 @@ export default function AdminDashboard() {
             let count = 0;
             for (const userDoc of snapshot.docs) {
                 await updateDoc(userDoc.ref, {
-                    currentDay: 1,
+                    currentDay: 0,
                     daysCompleted: [],
                     totalScore: 0,
                     exp: 0,
@@ -329,7 +349,7 @@ export default function AdminDashboard() {
                 count++;
             }
 
-            setMessage(`✅ Successfully reset ${count} users. All users are now at Day 1 with 0 score.`);
+            setMessage(`✅ Successfully reset ${count} users. All users are now at Intro (Day 0) with 0 score.`);
             fetchUsers();
         } catch (err) {
             console.error(err);
@@ -364,7 +384,7 @@ export default function AdminDashboard() {
     };
 
     const handleSyncCourseData = async () => {
-        if (!confirm("This will update all 21 days with the new topics and quiz. Continue?")) {
+        if (!confirm("This will update all 22 days (Intro + 21 Days) with the new topics and quiz. Continue?")) {
             return;
         }
         try {
@@ -374,7 +394,7 @@ export default function AdminDashboard() {
                 await setDoc(doc(db, "days", `day_${day.id}`), day);
             }
 
-            setMessage(`✅ Successfully synced all 21 days with new topics!`);
+            setMessage(`✅ Successfully synced all 22 days with new topics!`);
             fetchDays();
         } catch (err) {
             console.error(err);
@@ -391,9 +411,10 @@ export default function AdminDashboard() {
             setMessage("Saving start date...");
             const configRef = doc(db, "settings", "courseConfig");
             await setDoc(configRef, {
-                startDate: new Date(startDate)
+                startDate: new Date(startDate),
+                leaderboardLimit: parseInt(leaderboardLimit.toString()) || 50
             }, { merge: true });
-            setMessage("✅ Start date updated successfully!");
+            setMessage("✅ Settings updated successfully!");
         } catch (error) {
             console.error("Error saving start date:", error);
             setMessage("❌ Error saving start date: " + error);
@@ -511,6 +532,27 @@ export default function AdminDashboard() {
 
             {activeTab === "content" && (
                 <div className="space-y-6">
+                    {/* Check if Day 0 exists. If not, show alert. */}
+                    {!days.some(d => d.id === 0) && (
+                        <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-yellow-500/20 rounded-lg text-yellow-500">
+                                    <AlertTriangle size={24} />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-yellow-500">Introduction Day Missing</h3>
+                                    <p className="text-sm text-yellow-200/70">The 'Introduction' (Day 0) content is not in your database yet.</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={handleAddDay0}
+                                className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-black font-bold rounded-lg transition whitespace-nowrap"
+                            >
+                                Add Day 0 Now
+                            </button>
+                        </div>
+                    )}
+
                     {days.length === 0 ? (
                         <div className="text-center">
                             <p className="mb-4 text-gray-400">No content found in Firestore.</p>
@@ -791,7 +833,7 @@ export default function AdminDashboard() {
                                     onClick={handleSyncCourseData}
                                     className="w-full rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700 font-medium transition"
                                 >
-                                    Sync Course Content
+                                    Sync Course Content (Intro + 21 Days)
                                 </button>
                             </div>
                         </div>
@@ -1069,27 +1111,47 @@ export default function AdminDashboard() {
                         </p>
 
                         <div className="max-w-md space-y-6">
-                            <div className="space-y-2">
-                                <label className="block text-sm font-medium text-gray-300">
-                                    Set Challenge Start Date & Time
-                                </label>
-                                <div className="flex flex-col sm:flex-row gap-4">
+                            <div className="space-y-6">
+                                {/* Start Date */}
+                                <div className="space-y-2">
+                                    <label className="block text-sm font-medium text-gray-300">
+                                        Set Challenge Start Date & Time
+                                    </label>
                                     <input
                                         type="datetime-local"
                                         value={startDate}
                                         onChange={(e) => setStartDate(e.target.value)}
-                                        className="w-full rounded border border-white/10 bg-black/20 px-4 py-2 text-white focus:border-[var(--saffron)] focus:outline-none focus:ring-1 focus:ring-[var(--saffron)]"
+                                        className="w-full rounded border border-white/10 bg-black/20 px-4 py-3 text-white focus:border-[var(--saffron)] focus:outline-none focus:ring-1 focus:ring-[var(--saffron)]"
                                     />
-                                    <button
-                                        onClick={handleSaveStartDate}
-                                        className="whitespace-nowrap rounded bg-[var(--saffron)] px-6 py-2 font-bold text-white transition hover:brightness-110"
-                                    >
-                                        Set Start Date
-                                    </button>
+                                    <p className="text-xs text-gray-500">
+                                        Users will be redirected to the waiting page until this time is reached.
+                                    </p>
                                 </div>
-                                <p className="mt-2 text-xs text-gray-500">
-                                    Users will be redirected to the waiting page until this time is reached.
-                                </p>
+
+                                {/* Leaderboard Limit */}
+                                <div className="space-y-2">
+                                    <label className="block text-sm font-medium text-gray-300">
+                                        Leaderboard Display Limit
+                                    </label>
+                                    <input
+                                        type="number"
+                                        value={leaderboardLimit}
+                                        onChange={(e) => setLeaderboardLimit(parseInt(e.target.value))}
+                                        placeholder="50"
+                                        min="1"
+                                        className="w-full rounded border border-white/10 bg-black/20 px-4 py-3 text-white focus:border-[var(--saffron)] focus:outline-none focus:ring-1 focus:ring-[var(--saffron)]"
+                                    />
+                                    <p className="text-xs text-gray-500">
+                                        Number of top users to show on the public leaderboard.
+                                    </p>
+                                </div>
+
+                                <button
+                                    onClick={handleSaveStartDate}
+                                    className="w-full rounded bg-[var(--saffron)] px-6 py-3 font-bold text-white transition hover:brightness-110 mt-4"
+                                >
+                                    Save Settings
+                                </button>
                             </div>
                         </div>
                     </div>

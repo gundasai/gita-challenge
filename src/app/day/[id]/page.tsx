@@ -88,7 +88,8 @@ export default function DayPage() {
                         [dayData.id]: score
                     },
                     totalScore: increment(score),
-                    lastLogin: serverTimestamp()
+                    lastLogin: serverTimestamp(),
+                    lastScoreUpdatedAt: serverTimestamp()
                 }, { merge: true });
             } catch (error) {
                 console.error("Error updating progress:", error);
