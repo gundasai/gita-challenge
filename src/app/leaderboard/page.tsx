@@ -50,8 +50,16 @@ export default function LeaderboardPage() {
                 console.error("Error fetching display limit", e);
             }
 
-            const usersCol = collection(db, "users");
-            const snapshot = await getDocs(usersCol);
+            const usersRef = collection(db, "users");
+            // Optimization: Query only top users by score. 
+            // Note: Users without 'totalScore' field (0 score) will be excluded by the index.
+            const q = query(
+                usersRef,
+                orderBy("totalScore", "desc"),
+                limit(displayLimit + 10)
+            );
+
+            const snapshot = await getDocs(q);
 
             const leaderboardData = snapshot.docs.map(doc => {
                 const data = doc.data();
@@ -63,11 +71,10 @@ export default function LeaderboardPage() {
                     totalScore: data.totalScore || 0,
                     lastScoreUpdatedAt: data.lastScoreUpdatedAt, // May be undefined for old records
                     role: data.role || "user",
-                    // Calculated field for sorting logic if needed, but we use totalScore now
-                    score: data.totalScore || 0
                 };
             });
 
+            // Client-side sort for precise tie-breaking among the top fetched users
             // Sort by Total Score > Time Achieved (Earlier is better) > Days Completed > Name
             leaderboardData.sort((a, b) => {
                 if (b.totalScore !== a.totalScore) {
@@ -75,7 +82,6 @@ export default function LeaderboardPage() {
                 }
 
                 // Tie breaker: Who scored first? (Earlier timestamp wins)
-                // If one has timestamp and other doesn't, one with timestamp wins (assumed active)
                 if (a.lastScoreUpdatedAt && b.lastScoreUpdatedAt) {
                     const timeA = a.lastScoreUpdatedAt.toMillis ? a.lastScoreUpdatedAt.toMillis() : 0;
                     const timeB = b.lastScoreUpdatedAt.toMillis ? b.lastScoreUpdatedAt.toMillis() : 0;
@@ -92,9 +98,12 @@ export default function LeaderboardPage() {
                 return a.displayName.localeCompare(b.displayName); // Alphabetical
             });
 
-            // Filter out admins
-            const filteredUsers = leaderboardData.filter(user => user.role !== 'admin');
-            setUsers(filteredUsers.slice(0, displayLimit));
+            // Filter out admins and slice to exact limit
+            const filteredUsers = leaderboardData
+                .filter(user => user.role !== 'admin')
+                .slice(0, displayLimit);
+
+            setUsers(filteredUsers);
         } catch (error) {
             console.error("Error fetching leaderboard:", error);
         } finally {
