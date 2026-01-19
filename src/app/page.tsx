@@ -216,7 +216,7 @@ export default function Home() {
       </section>
 
       {/* Speaker Section */}
-      <section className="py-24 px-4 bg-white/[0.02]">
+      <section id="speaker" className="py-24 px-4 bg-white/[0.02] scroll-mt-32">
         <div className="mx-auto max-w-6xl">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -409,7 +409,7 @@ export default function Home() {
       </section>
 
       {/* Volunteers Section */}
-      <section className="py-16 px-4 bg-white/[0.02] overflow-hidden">
+      <section id="team" className="py-16 px-4 bg-white/[0.02] overflow-hidden scroll-mt-32">
         <div className="mx-auto max-w-7xl space-y-12">
           <div className="text-center">
             <h2 className="text-3xl font-bold text-[var(--cream)] md:text-4xl mb-2">Our Dedication Team</h2>
@@ -521,7 +521,7 @@ export default function Home() {
       </section>
 
       {/* Contact Us Section */}
-      <section className="py-24 px-4 bg-white/[0.02] border-t border-white/5">
+      <section id="contact" className="py-24 px-4 bg-white/[0.02] border-t border-white/5 scroll-mt-32">
         <div className="mx-auto max-w-7xl">
           <div className="text-center space-y-4 mb-16">
             <h2 className="text-3xl font-bold text-[var(--cream)] md:text-4xl">Contact Us</h2>
@@ -566,7 +566,7 @@ export default function Home() {
       </section>
 
       {/* Mini Footer */}
-      <footer className="py-12 px-4 border-t border-white/5 text-center text-gray-600 text-sm">
+      <footer className="py-12 px-4 border-t border-white/5 text-center text-gray-600 text-sm pb-52">
         <p>&copy; 2025 Gita Wisdom Course. All Rights Reserved.</p>
       </footer>
     </div>

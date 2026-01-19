@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 80px; /* Offset for sticky header */
+  }
+}
+
 :root {
   /* Enforce Dark Theme layout by default to match "Modern Spiritual" aesthetic */
   --background: #1a1a1a;

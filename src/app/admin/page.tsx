@@ -304,6 +304,7 @@ export default function AdminDashboard() {
         const excelData = users.map((user, index) => ({
             'S.NO': index + 1,
             'Name': user.displayName || '',
+            'Gender': user.gender || '',
             'Email': user.email || '',
             'WhatsApp Number': user.whatsapp || '',
             'Company/College': user.company || '',
@@ -745,6 +746,7 @@ export default function AdminDashboard() {
                                 <tr>
                                     <th className="p-4">S.NO</th>
                                     <th className="p-4">Name</th>
+                                    <th className="p-4">Gender</th>
                                     <th className="p-4">Email</th>
                                     <th className="p-4">WhatsApp</th>
                                     <th className="p-4">Company/College</th>
@@ -756,9 +758,10 @@ export default function AdminDashboard() {
                             </thead>
                             <tbody>
                                 {users.map((user, index) => (
-                                    <tr key={user.uid} className="border-b border-white/5 hover:bg-white/5">
+                                    <tr key={user.uid || index} className="border-b border-white/5 hover:bg-white/5">
                                         <td className="p-4 font-medium text-white">{index + 1}</td>
                                         <td className="p-4 font-medium text-white">{user.displayName}</td>
+                                        <td className="p-4">{user.gender || 'N/A'}</td>
                                         <td className="p-4">{user.email}</td>
                                         <td className="p-4">{user.whatsapp || 'N/A'}</td>
                                         <td className="p-4">{user.company || 'N/A'}</td>
