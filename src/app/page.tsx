@@ -567,6 +567,12 @@ export default function Home() {
 
       {/* Mini Footer */}
       <footer className="py-12 px-4 border-t border-white/5 text-center text-gray-600 text-sm pb-52">
+        <div className="flex flex-wrap justify-center gap-6 mb-4">
+          <Link href="/privacy" className="hover:text-[var(--saffron)] transition-colors">Privacy Policy</Link>
+          <Link href="/terms" className="hover:text-[var(--saffron)] transition-colors">Terms & Conditions</Link>
+          <Link href="/shipping-policy" className="hover:text-[var(--saffron)] transition-colors">Shipping Policy</Link>
+          <Link href="/cancellation-refund" className="hover:text-[var(--saffron)] transition-colors">Cancellation & Refunds</Link>
+        </div>
         <p>&copy; 2025 Gita Wisdom Course. All Rights Reserved.</p>
       </footer>
     </div>
