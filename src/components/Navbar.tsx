@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { usePathname } from "next/navigation";
-import { LogOut, User as UserIcon, X, Check } from "lucide-react";
+import { LogOut, User as UserIcon, X, Check, Menu } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function Navbar() {
@@ -12,6 +12,7 @@ export default function Navbar() {
     const pathname = usePathname();
     const [showConfirm, setShowConfirm] = useState(false);
     const [showBenevity, setShowBenevity] = useState(false);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     const handleLogout = async () => {
         await logout();
@@ -110,46 +111,143 @@ export default function Navbar() {
                             </div>
                         ) : (
                             <div className="flex items-center gap-4">
-                                <Link href="/#speaker" className="hidden lg:block text-sm font-medium text-gray-300 hover:text-[var(--saffron)] transition-colors">
-                                    Meet Your Guide
-                                </Link>
-                                <Link href="/#team" className="hidden lg:block text-sm font-medium text-gray-300 hover:text-[var(--saffron)] transition-colors">
-                                    Our Team
-                                </Link>
-                                <Link href="/topics" className="hidden lg:block text-sm font-medium text-gray-300 hover:text-[var(--saffron)] transition-colors">
-                                    Course Topics
-                                </Link>
-                                <Link href="/#contact" className="hidden lg:block text-sm font-medium text-gray-300 hover:text-[var(--saffron)] transition-colors">
-                                    Contact Us
-                                </Link>
+                                <div className="hidden lg:flex items-center gap-4">
+                                    <Link href="/#speaker" className="text-sm font-medium text-gray-300 hover:text-[var(--saffron)] transition-colors">
+                                        Meet Your Guide
+                                    </Link>
+                                    <Link href="/#team" className="text-sm font-medium text-gray-300 hover:text-[var(--saffron)] transition-colors">
+                                        Our Team
+                                    </Link>
+                                    <Link href="/topics" className="text-sm font-medium text-gray-300 hover:text-[var(--saffron)] transition-colors">
+                                        Course Topics
+                                    </Link>
+                                    <Link href="/#contact" className="text-sm font-medium text-gray-300 hover:text-[var(--saffron)] transition-colors">
+                                        Contact Us
+                                    </Link>
 
-                                <a
-                                    href="https://rzp.io/rzp/xzMts0BX"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="hidden sm:block rounded-full bg-gradient-to-r from-[var(--saffron)] to-orange-600 px-5 py-2 text-sm font-bold text-white shadow-lg shadow-orange-500/20 transition-all hover:scale-105 hover:shadow-orange-500/40"
-                                >
-                                    Donations Accepted
-                                </a>
+                                    <a
+                                        href="https://rzp.io/rzp/xzMts0BX"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="rounded-full bg-gradient-to-r from-[var(--saffron)] to-orange-600 px-5 py-2 text-sm font-bold text-white shadow-lg shadow-orange-500/20 transition-all hover:scale-105 hover:shadow-orange-500/40"
+                                    >
+                                        Donations Accepted
+                                    </a>
 
+                                    <button
+                                        onClick={() => setShowBenevity(true)}
+                                        className="rounded-full border border-[var(--saffron)]/30 bg-[var(--saffron)]/10 px-5 py-2 text-sm font-bold text-[var(--saffron)] transition-all hover:bg-[var(--saffron)] hover:text-white"
+                                    >
+                                        Benevity Volunteering
+                                    </button>
+
+                                    <Link
+                                        href="/login"
+                                        className="rounded-full border border-white/10 bg-white/5 px-6 py-2 text-sm font-medium text-white transition hover:bg-white/10"
+                                    >
+                                        Sign In
+                                    </Link>
+                                </div>
+
+                                {/* Mobile Menu Button */}
                                 <button
-                                    onClick={() => setShowBenevity(true)}
-                                    className="hidden sm:block rounded-full border border-[var(--saffron)]/30 bg-[var(--saffron)]/10 px-5 py-2 text-sm font-bold text-[var(--saffron)] transition-all hover:bg-[var(--saffron)] hover:text-white"
+                                    className="lg:hidden text-white p-2"
+                                    onClick={() => setIsMobileMenuOpen(true)}
                                 >
-                                    Benevity Volunteering
+                                    <Menu size={24} />
                                 </button>
-
-                                <Link
-                                    href="/login"
-                                    className="rounded-full border border-white/10 bg-white/5 px-6 py-2 text-sm font-medium text-white transition hover:bg-white/10"
-                                >
-                                    Sign In
-                                </Link>
                             </div>
                         )}
                     </div>
                 </div>
             </nav>
+
+            {/* Mobile Menu Overlay */}
+            <AnimatePresence>
+                {isMobileMenuOpen && (
+                    <motion.div
+                        initial={{ opacity: 0, x: "100%" }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: "100%" }}
+                        transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                        className="fixed inset-0 z-[60] bg-black/95 backdrop-blur-xl lg:hidden"
+                    >
+                        <div className="flex flex-col h-full p-6">
+                            <div className="flex justify-end mb-8">
+                                <button
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                    className="p-2 text-gray-400 hover:text-white bg-white/5 rounded-full"
+                                >
+                                    <X size={24} />
+                                </button>
+                            </div>
+
+                            <div className="flex flex-col gap-6 items-center text-center">
+                                <Link
+                                    href="/#speaker"
+                                    className="text-xl font-medium text-gray-300 hover:text-[var(--saffron)]"
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                >
+                                    Meet Your Guide
+                                </Link>
+                                <Link
+                                    href="/#team"
+                                    className="text-xl font-medium text-gray-300 hover:text-[var(--saffron)]"
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                >
+                                    Our Team
+                                </Link>
+                                <Link
+                                    href="/topics"
+                                    className="text-xl font-medium text-gray-300 hover:text-[var(--saffron)]"
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                >
+                                    Course Topics
+                                </Link>
+                                <Link
+                                    href="/#contact"
+                                    className="text-xl font-medium text-gray-300 hover:text-[var(--saffron)]"
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                >
+                                    Contact Us
+                                </Link>
+
+                                <div className="w-full h-px bg-white/10 my-2" />
+
+                                <a
+                                    href="https://rzp.io/rzp/xzMts0BX"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="w-full rounded-xl bg-gradient-to-r from-[var(--saffron)] to-orange-600 px-6 py-3 text-lg font-bold text-white shadow-lg shadow-orange-500/20"
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                >
+                                    Donations Accepted
+                                </a>
+
+                                <button
+                                    onClick={() => {
+                                        setIsMobileMenuOpen(false);
+                                        setShowBenevity(true);
+                                    }}
+                                    className="w-full rounded-xl border border-[var(--saffron)]/30 bg-[var(--saffron)]/10 px-6 py-3 text-lg font-bold text-[var(--saffron)]"
+                                >
+                                    Benevity Volunteering
+                                </button>
+
+                                {!user && (
+                                    <Link
+                                        href="/login"
+                                        className="w-full rounded-xl border border-white/10 bg-white/5 px-6 py-3 text-lg font-medium text-white mt-4"
+                                        onClick={() => setIsMobileMenuOpen(false)}
+                                    >
+                                        Sign In
+                                    </Link>
+                                )}
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* Benevity Modal */}
             <AnimatePresence>
