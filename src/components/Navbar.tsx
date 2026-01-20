@@ -125,14 +125,12 @@ export default function Navbar() {
                                         Contact Us
                                     </Link>
 
-                                    <a
-                                        href="https://rzp.io/rzp/xzMts0BX"
-                                        target="_blank"
-                                        rel="noopener noreferrer"
+                                    <Link
+                                        href="/donate"
                                         className="rounded-full bg-gradient-to-r from-[var(--saffron)] to-orange-600 px-5 py-2 text-sm font-bold text-white shadow-lg shadow-orange-500/20 transition-all hover:scale-105 hover:shadow-orange-500/40"
                                     >
                                         Donations Accepted
-                                    </a>
+                                    </Link>
 
                                     <button
                                         onClick={() => setShowBenevity(true)}
@@ -214,15 +212,13 @@ export default function Navbar() {
 
                                 <div className="w-full h-px bg-white/10 my-2" />
 
-                                <a
-                                    href="https://rzp.io/rzp/xzMts0BX"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
+                                <Link
+                                    href="/donate"
                                     className="w-full rounded-xl bg-gradient-to-r from-[var(--saffron)] to-orange-600 px-6 py-3 text-lg font-bold text-white shadow-lg shadow-orange-500/20"
                                     onClick={() => setIsMobileMenuOpen(false)}
                                 >
                                     Donations Accepted
-                                </a>
+                                </Link>
 
                                 <button
                                     onClick={() => {
@@ -309,3 +305,5 @@ export default function Navbar() {
         </>
     );
 }
+
+
