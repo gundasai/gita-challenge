@@ -7,11 +7,14 @@ import { Heart, Loader2 } from "lucide-react";
 import { useRazorpay } from "react-razorpay";
 import { useRouter } from "next/navigation";
 
+
 export default function DonatePage() {
 
     const [amount, setAmount] = useState<string>("");
     const [name, setName] = useState<string>("");
     const [mobile, setMobile] = useState<string>("");
+    const [pan, setPan] = useState<string>("");
+    const [address, setAddress] = useState<string>("");
     const [loading, setLoading] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false); // Add success state
     const { Razorpay } = useRazorpay();
@@ -35,6 +38,17 @@ export default function DonatePage() {
             return;
         }
 
+        const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+        if (!panRegex.test(pan)) {
+            alert("Please enter a valid PAN Number (e.g., ABCDE1234F)");
+            return;
+        }
+
+        if (address.trim().length < 5) {
+            alert("Please enter a valid address");
+            return;
+        }
+
         setLoading(true);
 
         try {
@@ -48,7 +62,9 @@ export default function DonatePage() {
                     amount: donationAmount,
                     notes: {
                         name: name,
-                        mobile: mobile
+                        mobile: mobile,
+                        pan: pan,
+                        address: address
                     }
                 }),
             });
@@ -141,6 +157,31 @@ export default function DonatePage() {
                     </div>
 
                     <div>
+                        <label className="block text-sm font-medium text-gray-400 mb-1 pl-1">PAN Number</label>
+                        <input
+                            type="text"
+                            required
+                            value={pan}
+                            onChange={(e) => setPan(e.target.value.toUpperCase())}
+                            placeholder="ABCDE1234F"
+                            maxLength={10}
+                            className="w-full rounded-xl bg-black/20 border border-white/10 px-4 py-3 text-white placeholder-gray-600 outline-none focus:border-[var(--saffron)] focus:ring-1 focus:ring-[var(--saffron)] transition-all uppercase"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-400 mb-1 pl-1">Address</label>
+                        <textarea
+                            required
+                            value={address}
+                            onChange={(e) => setAddress(e.target.value)}
+                            placeholder="Your complete address"
+                            rows={3}
+                            className="w-full rounded-xl bg-black/20 border border-white/10 px-4 py-3 text-white placeholder-gray-600 outline-none focus:border-[var(--saffron)] focus:ring-1 focus:ring-[var(--saffron)] transition-all resize-none"
+                        />
+                    </div>
+
+                    <div>
                         <label className="block text-sm font-medium text-gray-400 mb-1 pl-1">Donation Amount (₹)</label>
                         <div className="relative">
                             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-medium">₹</span>
@@ -204,3 +245,4 @@ export default function DonatePage() {
         </div>
     );
 }
+
