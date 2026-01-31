@@ -19,6 +19,8 @@ export default function AdminDashboard() {
     const [message, setMessage] = useState("");
     const [activeTab, setActiveTab] = useState("content"); // content | admins | database | settings
     const [startDate, setStartDate] = useState("");
+    const [registrationDate, setRegistrationDate] = useState("");
+    const [whatsappLink, setWhatsappLink] = useState("");
     const [leaderboardLimit, setLeaderboardLimit] = useState(50);
 
     // Database Explorer State
@@ -146,12 +148,36 @@ export default function AdminDashboard() {
                     const formatted = date.toISOString().slice(0, 16);
                     setStartDate(formatted);
                 }
+                if (data.registrationDate) {
+                    const date = data.registrationDate.toDate ? data.registrationDate.toDate() : new Date(data.registrationDate);
+                    const formatted = date.toISOString().slice(0, 16);
+                    setRegistrationDate(formatted);
+                }
+                if (data.whatsappLink) {
+                    setWhatsappLink(data.whatsappLink);
+                }
                 if (data.leaderboardLimit) {
                     setLeaderboardLimit(data.leaderboardLimit);
                 }
+            } else {
+                // Config doesn't exist?
             }
-        } catch (error) {
-            console.error("Error fetching start date:", error);
+        } catch (err) { console.error("Error fetching start date", err); }
+    };
+
+    const handleSaveStartDate = async () => {
+        try {
+            const configRef = doc(db, "settings", "courseConfig");
+            await setDoc(configRef, {
+                startDate: new Date(startDate), // Content Unlock / Waiting Page
+                registrationDate: registrationDate ? new Date(registrationDate) : null, // Alumni Cutoff
+                whatsappLink: whatsappLink || "", // Dynamic WhatsApp Link
+                leaderboardLimit: leaderboardLimit
+            }, { merge: true });
+            setMessage("Settings Saved!");
+        } catch (err) {
+            console.error(err);
+            alert("Error saving settings");
         }
     };
 
@@ -403,24 +429,7 @@ export default function AdminDashboard() {
         }
     };
 
-    const handleSaveStartDate = async () => {
-        if (!startDate) {
-            setMessage("❌ Please select a valid date and time.");
-            return;
-        }
-        try {
-            setMessage("Saving start date...");
-            const configRef = doc(db, "settings", "courseConfig");
-            await setDoc(configRef, {
-                startDate: new Date(startDate),
-                leaderboardLimit: parseInt(leaderboardLimit.toString()) || 50
-            }, { merge: true });
-            setMessage("✅ Settings updated successfully!");
-        } catch (error) {
-            console.error("Error saving start date:", error);
-            setMessage("❌ Error saving start date: " + error);
-        }
-    };
+
 
     // Database Explorer Functions
     const fetchExplorerDocs = async (collectionName: string) => {
@@ -1115,10 +1124,28 @@ export default function AdminDashboard() {
 
                         <div className="max-w-md space-y-6">
                             <div className="space-y-6">
-                                {/* Start Date */}
+                                {/* Registration Cutoff Code */}
                                 <div className="space-y-2">
                                     <label className="block text-sm font-medium text-gray-300">
-                                        Set Challenge Start Date & Time
+                                        Registration Start Date (Alumni Cutoff)
+                                    </label>
+                                    <input
+                                        type="datetime-local"
+                                        value={registrationDate}
+                                        onChange={(e) => setRegistrationDate(e.target.value)}
+                                        className="w-full rounded border border-white/10 bg-black/20 px-4 py-3 text-white focus:border-[var(--saffron)] focus:outline-none focus:ring-1 focus:ring-[var(--saffron)]"
+                                    />
+                                    <p className="text-xs text-gray-500">
+                                        Users joined <strong>BEFORE</strong> this date = Alumni (Bypass Waiting Page, Bypass Locks).
+                                        <br />
+                                        Users joined <strong>AFTER</strong> this date = Current Batch.
+                                    </p>
+                                </div>
+
+                                {/* Start Date (Batch Control) */}
+                                <div className="space-y-2">
+                                    <label className="block text-sm font-medium text-gray-300">
+                                        Course Content Start (Waiting Page Ends)
                                     </label>
                                     <input
                                         type="datetime-local"
@@ -1126,36 +1153,59 @@ export default function AdminDashboard() {
                                         onChange={(e) => setStartDate(e.target.value)}
                                         className="w-full rounded border border-white/10 bg-black/20 px-4 py-3 text-white focus:border-[var(--saffron)] focus:outline-none focus:ring-1 focus:ring-[var(--saffron)]"
                                     />
-                                    <p className="text-xs text-gray-500">
-                                        Users will be redirected to the waiting page until this time is reached.
-                                    </p>
+                                    <div className="rounded bg-blue-500/10 p-3">
+                                        <div className="text-xs text-blue-200">
+                                            <strong>New Batch Logic:</strong>
+                                            <ul className="mt-1 list-disc pl-4 space-y-1">
+                                                <li>New students will see <strong>Waiting Page</strong> until this date.</li>
+                                                <li>After this date, they must follow the Admin-set unlock dates for each video.</li>
+                                            </ul>
+                                        </div>
+                                    </div>
                                 </div>
 
-                                {/* Leaderboard Limit */}
+                                {/* WhatsApp Link */}
                                 <div className="space-y-2">
                                     <label className="block text-sm font-medium text-gray-300">
-                                        Leaderboard Display Limit
+                                        WhatsApp Group Link
                                     </label>
                                     <input
-                                        type="number"
-                                        value={leaderboardLimit}
-                                        onChange={(e) => setLeaderboardLimit(parseInt(e.target.value))}
-                                        placeholder="50"
-                                        min="1"
+                                        type="url"
+                                        value={whatsappLink}
+                                        onChange={(e) => setWhatsappLink(e.target.value)}
+                                        placeholder="https://chat.whatsapp.com/..."
                                         className="w-full rounded border border-white/10 bg-black/20 px-4 py-3 text-white focus:border-[var(--saffron)] focus:outline-none focus:ring-1 focus:ring-[var(--saffron)]"
                                     />
                                     <p className="text-xs text-gray-500">
-                                        Number of top users to show on the public leaderboard.
+                                        This link will be used on the Waiting Page and Registration Success screen.
                                     </p>
                                 </div>
-
-                                <button
-                                    onClick={handleSaveStartDate}
-                                    className="w-full rounded bg-[var(--saffron)] px-6 py-3 font-bold text-white transition hover:brightness-110 mt-4"
-                                >
-                                    Save Settings
-                                </button>
                             </div>
+
+                            {/* Leaderboard Limit */}
+                            <div className="space-y-2">
+                                <label className="block text-sm font-medium text-gray-300">
+                                    Leaderboard Display Limit
+                                </label>
+                                <input
+                                    type="number"
+                                    value={leaderboardLimit}
+                                    onChange={(e) => setLeaderboardLimit(parseInt(e.target.value))}
+                                    placeholder="50"
+                                    min="1"
+                                    className="w-full rounded border border-white/10 bg-black/20 px-4 py-3 text-white focus:border-[var(--saffron)] focus:outline-none focus:ring-1 focus:ring-[var(--saffron)]"
+                                />
+                                <p className="text-xs text-gray-500">
+                                    Number of top users to show on the public leaderboard.
+                                </p>
+                            </div>
+
+                            <button
+                                onClick={handleSaveStartDate}
+                                className="w-full rounded bg-[var(--saffron)] px-6 py-3 font-bold text-white transition hover:brightness-110 mt-4"
+                            >
+                                Save Settings
+                            </button>
                         </div>
                     </div>
                 </div>

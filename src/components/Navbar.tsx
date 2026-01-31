@@ -21,7 +21,7 @@ export default function Navbar() {
 
     return (
         <>
-            <nav className="sticky top-0 z-50 w-full border-b border-white/10 bg-black/50 backdrop-blur-md">
+            <nav className="sticky top-0 z-50 w-full border-b border-white/10 bg-black/50 backdrop-blur-md print:hidden">
                 <div className="container mx-auto flex h-16 items-center justify-between px-4">
                     <Link href="/" className="flex items-center gap-3">
                         <div className="rounded bg-white p-1">

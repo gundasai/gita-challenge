@@ -144,15 +144,28 @@ export default function Home() {
               <h1 className="text-3xl font-bold text-[var(--saffron)]">My Journey</h1>
               <p className="text-gray-400">Welcome back, {user.displayName?.split(" ")[0]}</p>
             </div>
-            <div className="flex items-center gap-4 rounded-xl bg-white/5 p-4 border border-white/10 shadow-2xl">
-              <div className="text-center">
-                <p className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Total Marks</p>
-                <p className="text-xl font-bold text-[var(--saffron)]">{userData?.totalScore || 0}</p>
-              </div>
-              <div className="h-8 w-px bg-white/10"></div>
-              <div className="text-center">
-                <p className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Completed</p>
-                <p className="text-xl font-bold text-[var(--cream)]">{completedCount}/22</p>
+
+            <div className="flex gap-4">
+              {userData?.daysCompleted?.includes(21) && (
+                <Link
+                  href="/certificate"
+                  className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-yellow-500 to-orange-500 px-4 py-2 font-bold text-white shadow-lg transition hover:scale-105 active:scale-95"
+                >
+                  <Award size={20} />
+                  <span className="hidden sm:inline">Certificate</span>
+                </Link>
+              )}
+
+              <div className="flex items-center gap-4 rounded-xl bg-white/5 p-4 border border-white/10 shadow-2xl">
+                <div className="text-center">
+                  <p className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Total Marks</p>
+                  <p className="text-xl font-bold text-[var(--saffron)]">{userData?.totalScore || 0}</p>
+                </div>
+                <div className="h-8 w-px bg-white/10"></div>
+                <div className="text-center">
+                  <p className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Completed</p>
+                  <p className="text-xl font-bold text-[var(--cream)]">{completedCount}/22</p>
+                </div>
               </div>
             </div>
           </header>

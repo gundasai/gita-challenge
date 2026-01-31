@@ -25,6 +25,7 @@ export default function SignupPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
     const [hasStarted, setHasStarted] = useState(false);
+    const [whatsappLink, setWhatsappLink] = useState("");
 
     useEffect(() => {
         const checkStartDate = async () => {
@@ -35,6 +36,9 @@ export default function SignupPage() {
                     if (data.startDate) {
                         const date = data.startDate.toDate ? data.startDate.toDate() : new Date(data.startDate);
                         if (new Date() > date) setHasStarted(true);
+                    }
+                    if (data.whatsappLink) {
+                        setWhatsappLink(data.whatsappLink);
                     }
                 }
             } catch (error) {
@@ -161,7 +165,7 @@ export default function SignupPage() {
                                 Join our WhatsApp group to stay updated with daily challenges and announcements.
                             </p>
                             <a
-                                href="https://chat.whatsapp.com/CgUtLgcTUsB16xgmuKGDwf"
+                                href={whatsappLink || "https://chat.whatsapp.com/CgUtLgcTUsB16xgmuKGDwf"}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="flex items-center justify-center gap-2 w-full rounded-lg bg-[#25D366] px-4 py-3 font-bold text-white transition-transform hover:scale-[1.02] active:scale-[0.98]"

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { collection, getDocs, doc, getDoc, query, orderBy, limit } from "firebase/firestore";
+import { collection, getDocs, doc, getDoc, query, orderBy, limit, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { motion } from "framer-motion";
 import { Trophy, Medal, Award } from "lucide-react";
@@ -39,25 +39,52 @@ export default function LeaderboardPage() {
 
     const fetchLeaderboard = async () => {
         try {
-            // Fetch Limit first
+            // Fetch Limit and Batch Start Date
+            // Fetch Limit and Batch Start/Registration Date
             let displayLimit = 50;
+            let filterDate: Date | null = null; // Used to filter current batch users
+
             try {
                 const configDoc = await getDoc(doc(db, "settings", "courseConfig"));
-                if (configDoc.exists() && configDoc.data().leaderboardLimit) {
-                    displayLimit = configDoc.data().leaderboardLimit;
+                if (configDoc.exists()) {
+                    const data = configDoc.data();
+                    if (data.leaderboardLimit) displayLimit = data.leaderboardLimit;
+
+                    // Prioritize Registration Date (Batch Cutoff)
+                    if (data.registrationDate) {
+                        filterDate = data.registrationDate.toDate ? data.registrationDate.toDate() : new Date(data.registrationDate);
+                    }
+                    // Fallback to Start Date
+                    else if (data.startDate) {
+                        filterDate = data.startDate.toDate ? data.startDate.toDate() : new Date(data.startDate);
+                    }
                 }
             } catch (e) {
-                console.error("Error fetching display limit", e);
+                console.error("Error fetching config", e);
             }
 
             const usersRef = collection(db, "users");
-            // Optimization: Query only top users by score. 
-            // Note: Users without 'totalScore' field (0 score) will be excluded by the index.
-            const q = query(
-                usersRef,
-                orderBy("totalScore", "desc"),
-                limit(displayLimit + 10)
-            );
+
+            // Build Query
+            let q;
+
+            if (filterDate) {
+                // Filter by Current Batch (Joined >= Registration/Start Date)
+                // NOTE: This requires a Firestore Composite Index: createdAt (ASC) + totalScore (DESC)
+                q = query(
+                    usersRef,
+                    where("createdAt", ">=", filterDate),
+                    orderBy("totalScore", "desc"),
+                    limit(displayLimit + 10)
+                );
+            } else {
+                // Fallback: Show All
+                q = query(
+                    usersRef,
+                    orderBy("totalScore", "desc"),
+                    limit(displayLimit + 10)
+                );
+            }
 
             const snapshot = await getDocs(q);
 

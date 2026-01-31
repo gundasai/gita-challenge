@@ -7,7 +7,7 @@ import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 
 export function useAccessControl(redirectToLogin: boolean = false) {
-    const { user, userRole, loading } = useAuth();
+    const { user, userData, userRole, loading } = useAuth();
     const router = useRouter();
     const [canAccess, setCanAccess] = useState(false);
     const [checking, setChecking] = useState(true);
@@ -42,6 +42,24 @@ export function useAccessControl(redirectToLogin: boolean = false) {
                     if (data.startDate) {
                         const startDate = data.startDate.toDate ? data.startDate.toDate() : new Date(data.startDate);
                         const now = new Date();
+
+                        // --- ALUMNI CHECK ---
+                        // Use Registration Date as cutoff if available, otherwise Start Date.
+                        // Users created BEFORE this cutoff are Alumni.
+                        // Users created AFTER are New Batch / Current Students.
+                        let cutoffDate = startDate;
+                        if (data.registrationDate) {
+                            cutoffDate = data.registrationDate.toDate ? data.registrationDate.toDate() : new Date(data.registrationDate);
+                        }
+
+                        if (userData?.createdAt) {
+                            const userCreated = userData.createdAt.toDate ? userData.createdAt.toDate() : new Date(userData.createdAt);
+                            if (userCreated < cutoffDate) {
+                                setCanAccess(true);
+                                setChecking(false);
+                                return;
+                            }
+                        }
 
                         if (now >= startDate) {
                             // Challenge has started

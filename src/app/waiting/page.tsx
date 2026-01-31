@@ -13,6 +13,7 @@ export default function WaitingPage() {
     const router = useRouter();
     const [countdown, setCountdown] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
     const [startDate, setStartDate] = useState<Date | null>(null);
+    const [whatsappLink, setWhatsappLink] = useState("");
     const [hasStarted, setHasStarted] = useState(false);
 
     useEffect(() => {
@@ -26,6 +27,9 @@ export default function WaitingPage() {
                         // Handle Firestore Timestamp
                         const date = data.startDate.toDate ? data.startDate.toDate() : new Date(data.startDate);
                         setStartDate(date);
+                    }
+                    if (data.whatsappLink) {
+                        setWhatsappLink(data.whatsappLink);
                     }
                 }
             } catch (error) {
@@ -102,7 +106,9 @@ export default function WaitingPage() {
                             Gita Wisdom
                         </h1>
                         <p className="text-sm font-medium text-gray-400">
-                            Course Intake: <span className="text-[var(--cream)]">January 2026</span>
+                            Course Intake: <span className="text-[var(--cream)]">
+                                {startDate ? startDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'Loading...'}
+                            </span>
                         </p>
                     </div>
 
@@ -174,7 +180,7 @@ export default function WaitingPage() {
                             </div>
 
                             <a
-                                href="https://chat.whatsapp.com/CgUtLgcTUsB16xgmuKGDwf"
+                                href={whatsappLink || "https://chat.whatsapp.com/CgUtLgcTUsB16xgmuKGDwf"}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="group relative flex w-full items-center justify-center gap-3 overflow-hidden rounded-xl bg-white p-4 transition-all hover:bg-green-500 active:scale-[0.98]"

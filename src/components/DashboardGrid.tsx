@@ -3,6 +3,10 @@
 import { motion } from "framer-motion";
 import { Lock, CheckCircle, Play } from "lucide-react";
 import Link from "next/link";
+import { useAuth } from "@/context/AuthContext";
+import { useEffect, useState } from "react";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 interface Day {
     id: number;
@@ -13,14 +17,64 @@ interface Day {
 }
 
 export default function DashboardGrid({ currentDay, daysCompleted, daysData }: { currentDay: number; daysCompleted: number[]; daysData?: any[] }) {
+    const { userData } = useAuth();
+    const [alumniCutoffDate, setAlumniCutoffDate] = useState<Date | null>(null);
+    const [loadingConfig, setLoadingConfig] = useState(true);
+
+    useEffect(() => {
+        const fetchConfig = async () => {
+            try {
+                const configDoc = await getDoc(doc(db, "settings", "courseConfig"));
+                if (configDoc.exists()) {
+                    const data = configDoc.data();
+                    let cutoff = null;
+
+                    // Prefer Registration Date (Batch Cutoff)
+                    if (data.registrationDate) {
+                        cutoff = data.registrationDate.toDate ? data.registrationDate.toDate() : new Date(data.registrationDate);
+                    }
+                    // Fallback to Start Date (Old Logic)
+                    else if (data.startDate) {
+                        cutoff = data.startDate.toDate ? data.startDate.toDate() : new Date(data.startDate);
+                    }
+
+                    setAlumniCutoffDate(cutoff);
+                }
+            } catch (error) {
+                console.error("Error fetching batch config:", error);
+            } finally {
+                setLoadingConfig(false);
+            }
+        };
+        fetchConfig();
+    }, []);
+
     const days = Array.from({ length: 22 }, (_, i) => {
         // IDs from 0 to 21. i starts at 0.
         const id = i;
         const dayInfo = daysData?.find(d => d.id === id);
 
-        let isLocked = id > currentDay;
-        // Check Time Lock
-        if (dayInfo?.unlockDate) {
+        // --- BATCH LOGIC START ---
+
+        let isAlumni = false;
+
+        if (alumniCutoffDate && userData?.createdAt) {
+            const userCreated = userData.createdAt.toDate ? userData.createdAt.toDate() : new Date(userData.createdAt);
+            // Alumni Check: If user created BEFORE batch cutoff => Alumni (Unlock All Time Locks)
+            if (userCreated < alumniCutoffDate) {
+                isAlumni = true;
+            }
+        }
+
+        // 1. SEQUENTIAL LOCK (Universal Rule)
+        // Day 0 is always unlocked.
+        // Day N is unlocked ONLY if Day N-1 is in daysCompleted.
+        let isLocked = id === 0 ? false : !daysCompleted.includes(id - 1);
+
+        // 2. TIME LOCK (Only for Current Batch)
+        // If I am NOT an alumni, I must verify the Admin-set unlock date.
+        // If I AM an alumni, I ignore the date check (so I don't get locked out by new batch dates).
+        if (!isAlumni && dayInfo?.unlockDate) {
             if (new Date(dayInfo.unlockDate) > new Date()) {
                 isLocked = true;
             }
@@ -68,7 +122,7 @@ export default function DashboardGrid({ currentDay, daysCompleted, daysData }: {
                         <p className={`mt-4 text-sm ${day.isLocked ? "text-gray-600" : "text-gray-300"}`}>
                             {day.isLocked
                                 ? (day.unlockDate && new Date(day.unlockDate) > new Date()
-                                    ? `Available ${new Date(day.unlockDate).toLocaleDateString()}`
+                                    ? `Available ${new Date(day.unlockDate).toLocaleDateString()} ${new Date(day.unlockDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
                                     : "Complete previous day to unlock")
                                 : "Ready to start"}
                         </p>
