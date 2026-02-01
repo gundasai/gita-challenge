@@ -18,6 +18,7 @@ import {
   Quote,
   ChevronLeft,
   ChevronRight,
+  Heart,
   Phone,
   Mail
 } from "lucide-react";
@@ -153,6 +154,16 @@ export default function Home() {
                 >
                   <Award size={20} />
                   <span className="hidden sm:inline">Certificate</span>
+                </Link>
+              )}
+
+              {userData?.daysCompleted?.includes(21) && (
+                <Link
+                  href="/donate"
+                  className="flex items-center gap-2 rounded-xl border border-[var(--saffron)]/40 bg-[var(--saffron)]/10 px-4 py-2 font-bold text-[var(--saffron)] transition-all hover:scale-105 hover:bg-[var(--saffron)]/20 hover:border-[var(--saffron)] shadow-lg shadow-orange-500/5 hover:shadow-orange-500/20"
+                >
+                  <Heart size={20} />
+                  <span>Donations Accepted</span>
                 </Link>
               )}
 
