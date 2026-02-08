@@ -23,7 +23,7 @@ interface LeaderboardUser {
 }
 
 export default function LeaderboardPage() {
-    const { loading: authLoading, userRole } = useAuth();
+    const { loading: authLoading, userRole, userData } = useAuth();
     const { canAccess, checking } = useAccessControl();
     const router = useRouter();
     const [users, setUsers] = useState<LeaderboardUser[]>([]);
@@ -31,11 +31,21 @@ export default function LeaderboardPage() {
 
     useEffect(() => {
         if (!checking && !authLoading) {
+            // Redirect pending users
+            if (userData?.status === 'pending' && userData?.institutionId) {
+                router.push('/waiting');
+                return;
+            }
+
             if (canAccess || userRole === "admin") {
                 fetchLeaderboard();
+            } else {
+                // If not allowed and not pending (already handled), maybe redirect home?
+                // The useAccessControl might handle some, but let's be safe.
+                router.push('/');
             }
         }
-    }, [checking, authLoading, canAccess, userRole]);
+    }, [checking, authLoading, canAccess, userRole, userData, router]);
 
     const fetchLeaderboard = async () => {
         try {
@@ -70,20 +80,43 @@ export default function LeaderboardPage() {
 
             if (filterDate) {
                 // Filter by Current Batch (Joined >= Registration/Start Date)
-                // NOTE: This requires a Firestore Composite Index: createdAt (ASC) + totalScore (DESC)
-                q = query(
-                    usersRef,
-                    where("createdAt", ">=", filterDate),
-                    orderBy("totalScore", "desc"),
-                    limit(displayLimit + 10)
-                );
+                // Filter by Institution if applicable
+                if (userData?.institutionId) {
+                    // Note: This requires index: institutionId (ASC) + totalScore (DESC)
+                    // We might not have this index yet, so we can filter client side if needed, 
+                    // but query is better. Let's try query.
+                    q = query(
+                        usersRef,
+                        where("institutionId", "==", userData.institutionId),
+                        // Ideally we want date filter too, but that needs composite index.
+                        // Let's filter by institution first (more important for view)
+                        orderBy("totalScore", "desc"),
+                        limit(displayLimit + 10)
+                    );
+                } else {
+                    q = query(
+                        usersRef,
+                        where("createdAt", ">=", filterDate),
+                        orderBy("totalScore", "desc"),
+                        limit(displayLimit + 10)
+                    );
+                }
             } else {
-                // Fallback: Show All
-                q = query(
-                    usersRef,
-                    orderBy("totalScore", "desc"),
-                    limit(displayLimit + 10)
-                );
+                if (userData?.institutionId) {
+                    q = query(
+                        usersRef,
+                        where("institutionId", "==", userData.institutionId),
+                        orderBy("totalScore", "desc"),
+                        limit(displayLimit + 10)
+                    );
+                } else {
+                    // Fallback: Show All
+                    q = query(
+                        usersRef,
+                        orderBy("totalScore", "desc"),
+                        limit(displayLimit + 10)
+                    );
+                }
             }
 
             const snapshot = await getDocs(q);
@@ -149,7 +182,9 @@ export default function LeaderboardPage() {
                 </Link>
 
                 <div className="mb-12 text-center">
-                    <h1 className="text-4xl font-bold text-[var(--saffron)]">Seeker's Leaderboard</h1>
+                    <h1 className="text-4xl font-bold text-[var(--saffron)]">
+                        {userData?.institutionId ? "Institution Leaderboard" : "Seeker's Leaderboard"}
+                    </h1>
                     <p className="mt-2 text-gray-400">Top dedicated souls on the journey</p>
                 </div>
 

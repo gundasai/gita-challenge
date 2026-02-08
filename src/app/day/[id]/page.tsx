@@ -200,18 +200,22 @@ export default function DayPage() {
                                             May this knowledge illuminate your path forward. 🙏
                                         </p>
                                         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center px-4">
-                                            <Link
-                                                href="/certificate"
-                                                className="w-full sm:w-auto rounded-full bg-gradient-to-r from-yellow-500 to-orange-500 px-6 sm:px-8 py-3 font-bold text-white transition hover:brightness-110 shadow-lg"
-                                            >
-                                                View Your Certificate
-                                            </Link>
-                                            <Link
-                                                href="/leaderboard"
-                                                className="w-full sm:w-auto rounded-full bg-white/10 px-6 sm:px-8 py-3 font-medium text-white transition hover:bg-white/20"
-                                            >
-                                                Check Leaderboard
-                                            </Link>
+                                            {userData?.institutionId ? (
+                                                // IKS Users: Show Leaderboard only
+                                                <Link
+                                                    href="/leaderboard"
+                                                    className="w-full sm:w-auto rounded-full bg-white/10 px-6 sm:px-8 py-3 font-medium text-white transition hover:bg-white/20"
+                                                >
+                                                    Check Leaderboard
+                                                </Link>
+                                            ) : (
+                                                // General Users: Show highlighted text
+                                                <div className="rounded-xl bg-yellow-500/20 border border-yellow-500/50 p-4 animate-pulse">
+                                                    <p className="text-lg sm:text-xl font-bold text-white">
+                                                        Download your certificate from Dashboard
+                                                    </p>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>

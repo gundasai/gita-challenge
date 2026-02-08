@@ -8,41 +8,76 @@ import { LogOut, User as UserIcon, X, Check, Menu } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function Navbar() {
-    const { user, userRole, logout } = useAuth();
+    const { user, userData, userRole, logout } = useAuth();
     const pathname = usePathname();
     const [showConfirm, setShowConfirm] = useState(false);
     const [showBenevity, setShowBenevity] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     const handleLogout = async () => {
+        const isIksUser = !!userData?.institutionId;
         await logout();
-        window.location.href = "/login";
+        window.location.href = isIksUser ? "/iks/login" : "/login";
     };
 
     return (
         <>
             <nav className="sticky top-0 z-50 w-full border-b border-white/10 bg-black/50 backdrop-blur-md print:hidden">
                 <div className="container mx-auto flex h-16 items-center justify-between px-4">
-                    <Link href="/" className="flex items-center gap-3">
-                        <div className="rounded bg-white p-1">
-                            <img src="/iskcon_logo_v2.png" alt="ISKCON" className="h-8 w-auto object-contain" />
+                    <Link
+                        href={
+                            pathname?.startsWith('/iks')
+                                ? "/iks"
+                                : userRole === 'institution_admin'
+                                    ? "/institution-dashboard"
+                                    : "/"
+                        }
+                        className="flex items-center gap-3"
+                    >
+                        {pathname?.startsWith('/iks') ? (
+                            <div className="rounded-full bg-[var(--saffron)]/10 p-2 backdrop-blur-sm border border-[var(--saffron)]/20 text-[var(--saffron)]">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-book-open"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" /></svg>
+                            </div>
+                        ) : (
+                            <div className="rounded bg-white p-1">
+                                <img src="/iskcon_logo_v2.png" alt="ISKCON" className="h-8 w-auto object-contain" />
+                            </div>
+                        )}
+                        <div className="flex flex-col">
+                            {pathname?.startsWith('/iks') ? (
+                                <>
+                                    <span className="text-xl font-bold bg-linear-to-r from-[var(--saffron)] to-[var(--cream)] bg-clip-text text-transparent">
+                                        Indian Knowledge Systems
+                                    </span>
+                                </>
+                            ) : (
+                                <>
+                                    <span className="text-xl font-bold bg-linear-to-r from-[var(--saffron)] to-[var(--cream)] bg-clip-text text-transparent">
+                                        Gita Wisdom Course
+                                    </span>
+                                    {userData?.institutionId && (
+                                        <span className="text-[10px] text-blue-300 font-medium">
+                                            In Collaboration with {userData.company || (userRole === 'institution_admin' ? userData.displayName : '')}
+                                        </span>
+                                    )}
+                                </>
+                            )}
                         </div>
-                        <span className="text-xl font-bold bg-linear-to-r from-[var(--saffron)] to-[var(--cream)] bg-clip-text text-transparent">
-                            Gita Wisdom Course
-                        </span>
                     </Link>
 
                     <div className="flex items-center gap-4">
-                        {user && !['/login', '/signup'].includes(pathname) ? (
+                        {user && !['/login', '/signup', '/iks/login', '/iks/register'].includes(pathname || '') ? (
                             <div className="flex items-center gap-4">
                                 {userRole === "admin" && (
                                     <Link href="/admin" className="text-sm font-medium text-[var(--saffron)] hover:text-[var(--cream)]">
                                         Admin
                                     </Link>
                                 )}
-                                <Link href="/leaderboard" className="text-sm font-medium text-gray-300 hover:text-[var(--cream)]">
-                                    Leaderboard
-                                </Link>
+                                {!pathname?.startsWith('/iks') && (
+                                    <Link href="/leaderboard" className="text-sm font-medium text-gray-300 hover:text-[var(--cream)]">
+                                        Leaderboard
+                                    </Link>
+                                )}
 
                                 <div className="relative flex items-center gap-4">
                                     <span className="hidden text-sm text-[var(--cream)]/80 sm:block">
@@ -111,49 +146,74 @@ export default function Navbar() {
                             </div>
                         ) : (
                             <div className="flex items-center gap-4">
-                                <div className="hidden lg:flex items-center gap-4">
-                                    <Link href="/#speaker" className="text-sm font-medium text-gray-300 hover:text-[var(--saffron)] transition-colors">
-                                        Meet Your Guide
-                                    </Link>
-                                    <Link href="/#team" className="text-sm font-medium text-gray-300 hover:text-[var(--saffron)] transition-colors">
-                                        Our Team
-                                    </Link>
-                                    <Link href="/topics" className="text-sm font-medium text-gray-300 hover:text-[var(--saffron)] transition-colors">
-                                        Course Topics
-                                    </Link>
-                                    <Link href="/#contact" className="text-sm font-medium text-gray-300 hover:text-[var(--saffron)] transition-colors">
-                                        Contact Us
-                                    </Link>
+                                {!pathname?.startsWith('/iks') ? (
+                                    <>
+                                        <div className="hidden lg:flex items-center gap-4">
+                                            <Link href="/#speaker" className="text-sm font-medium text-gray-300 hover:text-[var(--saffron)] transition-colors">
+                                                Meet Your Guide
+                                            </Link>
+                                            <Link href="/#team" className="text-sm font-medium text-gray-300 hover:text-[var(--saffron)] transition-colors">
+                                                Our Team
+                                            </Link>
+                                            <Link href="/topics" className="text-sm font-medium text-gray-300 hover:text-[var(--saffron)] transition-colors">
+                                                Course Topics
+                                            </Link>
+                                            <Link href="/#contact" className="text-sm font-medium text-gray-300 hover:text-[var(--saffron)] transition-colors">
+                                                Contact Us
+                                            </Link>
 
-                                    <Link
-                                        href="/donate"
-                                        className="rounded-full bg-gradient-to-r from-[var(--saffron)] to-orange-600 px-5 py-2 text-sm font-bold text-white shadow-lg shadow-orange-500/20 transition-all hover:scale-105 hover:shadow-orange-500/40"
-                                    >
-                                        Donations Accepted
-                                    </Link>
+                                            {!userData?.institutionId && (
+                                                <Link
+                                                    href="/donate"
+                                                    className="rounded-full bg-gradient-to-r from-[var(--saffron)] to-orange-600 px-5 py-2 text-sm font-bold text-white shadow-lg shadow-orange-500/20 transition-all hover:scale-105 hover:shadow-orange-500/40"
+                                                >
+                                                    Donations Accepted
+                                                </Link>
+                                            )}
 
-                                    <button
-                                        onClick={() => setShowBenevity(true)}
-                                        className="rounded-full border border-[var(--saffron)]/30 bg-[var(--saffron)]/10 px-5 py-2 text-sm font-bold text-[var(--saffron)] transition-all hover:bg-[var(--saffron)] hover:text-white"
-                                    >
-                                        Benevity Volunteering
-                                    </button>
+                                            <button
+                                                onClick={() => setShowBenevity(true)}
+                                                className="rounded-full border border-[var(--saffron)]/30 bg-[var(--saffron)]/10 px-5 py-2 text-sm font-bold text-[var(--saffron)] transition-all hover:bg-[var(--saffron)] hover:text-white"
+                                            >
+                                                Benevity Volunteering
+                                            </button>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="hidden lg:flex items-center gap-4">
+                                        <Link href="/" className="text-sm font-medium text-gray-400 hover:text-white transition-colors">
+                                            Go to Main Site
+                                        </Link>
+                                    </div>
+                                )}
 
+                                {!pathname?.startsWith('/iks') && (
                                     <Link
                                         href="/login"
-                                        className="rounded-full border border-white/10 bg-white/5 px-6 py-2 text-sm font-medium text-white transition hover:bg-white/10"
+                                        className="hidden lg:flex rounded-full border border-white/10 bg-white/5 px-6 py-2 text-sm font-medium text-white transition hover:bg-white/10"
                                     >
                                         Sign In
                                     </Link>
-                                </div>
+                                )}
+
+                                {pathname?.startsWith('/iks') && !['/iks/login', '/iks/register'].includes(pathname || '') && (
+                                    <Link
+                                        href="/iks/login"
+                                        className="rounded-full bg-[var(--saffron)] px-6 py-2 text-sm font-bold text-white transition hover:brightness-110"
+                                    >
+                                        Student Login
+                                    </Link>
+                                )}
 
                                 {/* Mobile Menu Button */}
-                                <button
-                                    className="lg:hidden text-white p-2"
-                                    onClick={() => setIsMobileMenuOpen(true)}
-                                >
-                                    <Menu size={24} />
-                                </button>
+                                {!pathname?.startsWith('/iks') && (
+                                    <button
+                                        className="lg:hidden text-white p-2"
+                                        onClick={() => setIsMobileMenuOpen(true)}
+                                    >
+                                        <Menu size={24} />
+                                    </button>
+                                )}
                             </div>
                         )}
                     </div>

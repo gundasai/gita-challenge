@@ -9,7 +9,7 @@ interface AuthContextType {
     userData: any; // Using any for flexibility, strict type would be better
     userRole: string | null;
     loading: boolean;
-    signup: (email: string, password: string, displayName: string, whatsapp: string, company: string, city: string, gender: string) => Promise<UserCredential>;
+    signup: (email: string, password: string, displayName: string, whatsapp: string, company: string, city: string, gender: string, institutionId?: string) => Promise<UserCredential>;
     login: (email: string, password: string) => Promise<UserCredential>;
     logout: () => Promise<void>;
 }
@@ -23,10 +23,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [loading, setLoading] = useState(true);
 
     // Sign up with Email/Password
-    const signup = async (email: string, password: string, displayName: string, whatsapp: string, company: string, city: string, gender: string) => {
+    const signup = async (email: string, password: string, displayName: string, whatsapp: string, company: string, city: string, gender: string, institutionId?: string) => {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         await updateProfile(userCredential.user, { displayName });
-        await createUserDocument(userCredential.user, whatsapp, company, city, gender);
+        await createUserDocument(userCredential.user, whatsapp, company, city, gender, institutionId);
         return userCredential;
     };
 
@@ -44,12 +44,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     // Create User Document in Firestore
-    const createUserDocument = async (user: User, whatsapp?: string, company?: string, city?: string, gender?: string) => {
+    const createUserDocument = async (user: User, whatsapp?: string, company?: string, city?: string, gender?: string, institutionId?: string) => {
         const userRef = doc(db, "users", user.uid);
         const userSnap = await getDoc(userRef);
 
         if (!userSnap.exists()) {
             const role = user.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL ? "admin" : "user";
+            // Default status: 'active' for regular users, 'pending' for IKS users (with institutionId)
+            const status = institutionId ? 'pending' : 'active';
+
             await setDoc(userRef, {
                 uid: user.uid,
                 email: user.email,
@@ -58,6 +61,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 company: company || "",
                 city: city || "",
                 gender: gender || "",
+                institutionId: institutionId || null,
+                status: status,
                 currentDay: 1,
                 daysCompleted: [],
                 exp: 0,

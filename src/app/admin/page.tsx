@@ -5,19 +5,19 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { doc, getDoc, setDoc, updateDoc, collection, getDocs, addDoc, deleteDoc, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { Trash2, Edit, Plus, UserPlus, Save, Download, X, AlertTriangle } from "lucide-react";
+import { Trash2, Edit, Plus, UserPlus, Save, Download, X, AlertTriangle, Building, Eye, EyeOff } from "lucide-react";
 import { courseData as staticData } from "@/data/courseData";
 import * as XLSX from 'xlsx';
 
 export default function AdminDashboard() {
-    const { user, userRole, loading } = useAuth();
+    const { user, userData, userRole, loading } = useAuth();
     const router = useRouter();
     const [days, setDays] = useState<any[]>([]);
     const [isEditing, setIsEditing] = useState<number | null>(null);
     const [editForm, setEditForm] = useState<any>({});
     const [newAdminEmail, setNewAdminEmail] = useState("");
     const [message, setMessage] = useState("");
-    const [activeTab, setActiveTab] = useState("content"); // content | admins | database | settings
+    const [activeTab, setActiveTab] = useState("admins"); // default to users for institution_admin
     const [startDate, setStartDate] = useState("");
     const [registrationDate, setRegistrationDate] = useState("");
     const [whatsappLink, setWhatsappLink] = useState("");
@@ -37,18 +37,30 @@ export default function AdminDashboard() {
     const [editingTestimonialId, setEditingTestimonialId] = useState<string | null>(null);
     const [editingVolunteerId, setEditingVolunteerId] = useState<string | null>(null);
 
+    // Institutions State
+    const [institutions, setInstitutions] = useState<any[]>([]);
+    const [newInstName, setNewInstName] = useState("");
+    const [newInstEmail, setNewInstEmail] = useState("");
+    const [newInstPassword, setNewInstPassword] = useState("");
+    const [creatingInst, setCreatingInst] = useState(false);
+
 
 
     useEffect(() => {
         if (!loading) {
-            if (!user || userRole !== "admin") {
+            if (!user || (userRole !== "admin" && userRole !== "institution_admin")) {
                 router.push("/");
             } else {
-                fetchDays();
-                fetchDays();
-                fetchStartDate();
-                fetchTestimonials();
-                fetchVolunteers();
+                if (userRole === "admin") {
+                    fetchDays();
+                    fetchStartDate();
+                    fetchTestimonials();
+                    fetchVolunteers();
+                }
+                // If institution_admin, we focus on users.
+                if (userRole === "institution_admin") {
+                    setActiveTab("admins");
+                }
             }
         }
     }, [user, userRole, loading, router]);
@@ -305,7 +317,17 @@ export default function AdminDashboard() {
     const fetchUsers = async () => {
         try {
             const usersCol = collection(db, "users");
-            const snapshot = await getDocs(usersCol);
+            let q;
+
+            if (userRole === "institution_admin" && userData?.institutionId) {
+                // Filter users by institutionId
+                q = query(usersCol, where("institutionId", "==", userData.institutionId));
+            } else {
+                // Super admin sees all
+                q = query(usersCol);
+            }
+
+            const snapshot = await getDocs(q);
             setUsers(snapshot.docs.map(doc => doc.data()));
         } catch (error) {
             console.error("Error fetching users:", error);
@@ -484,57 +506,217 @@ export default function AdminDashboard() {
         if (activeTab === "database") {
             fetchExplorerDocs(explorerCollection);
         }
+        if (activeTab === "institutions") {
+            fetchInstitutions();
+        }
     }, [activeTab, explorerCollection]);
 
-    if (loading || userRole !== "admin") return <div className="p-8 text-center text-white">Loading Admin Panel...</div>;
+    const fetchInstitutions = async () => {
+        try {
+            const snap = await getDocs(collection(db, "institutions"));
+            setInstitutions(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        } catch (error) { console.error("Error fetching institutions", error); }
+    };
+
+    const [editingInstId, setEditingInstId] = useState<string | null>(null);
+    const [instEditForm, setInstEditForm] = useState({ name: "", email: "", password: "" });
+
+    const handleUpdateInstitution = async () => {
+        if (!editingInstId || !instEditForm.name || !instEditForm.email) {
+            alert("Name and Email are required");
+            return;
+        }
+
+        try {
+            const inst = institutions.find(i => i.id === editingInstId);
+            if (!inst) return;
+
+            const res = await fetch('/api/admin/update-institution', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    institutionId: editingInstId,
+                    adminUid: inst.adminUid,
+                    name: instEditForm.name,
+                    email: instEditForm.email,
+                    password: instEditForm.password // Optional
+                })
+            });
+
+            const data = await res.json();
+            if (res.ok) {
+                setMessage("✅ Institution Updated Successfully!");
+                setEditingInstId(null);
+                setInstEditForm({ name: "", email: "", password: "" });
+                fetchInstitutions();
+            } else {
+                alert("Error: " + data.error);
+            }
+        } catch (err: any) {
+            alert("Error updating institution: " + err.message);
+        }
+    };
+
+    // Import Firebase App/Auth dynamically to avoid SSR issues if used elsewhere, 
+    // but here we can just use standard imports if we were at top level.
+    // For local logic inside handler:
+    const handleCreateInstitution = async () => {
+        if (!newInstName || !newInstEmail || !newInstPassword) {
+            alert("Please fill all fields");
+            return;
+        }
+        setCreatingInst(true);
+        let secondaryApp = null;
+        try {
+            // 1. Initialize a Secondary App to create user without logging out the Admin
+            const { initializeApp, getApp, deleteApp } = await import("firebase/app");
+            const { getAuth, createUserWithEmailAndPassword } = await import("firebase/auth");
+
+            // Use same config as main app
+            const firebaseConfig = {
+                apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+                authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+                projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+                storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+                messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+                appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+            };
+
+            // Unique name for secondary app
+            const appName = "secondaryAppForUserCreation";
+            try {
+                secondaryApp = getApp(appName);
+            } catch (e) {
+                secondaryApp = initializeApp(firebaseConfig, appName);
+            }
+
+            const secondaryAuth = getAuth(secondaryApp);
+
+            // 2. Create User in Firebase Auth
+            const userCred = await createUserWithEmailAndPassword(secondaryAuth, newInstEmail, newInstPassword);
+            const newUser = userCred.user;
+
+            // 3. Create Documents in Firestore (using main app's 'db' instance)
+            const institutionRef = doc(collection(db, "institutions"));
+            const institutionId = institutionRef.id;
+
+            // Store Institution Data (including password/email for admin view)
+            await setDoc(institutionRef, {
+                id: institutionId,
+                name: newInstName,
+                adminEmail: newInstEmail,
+                password: newInstPassword, // Storing for visibility as requested
+                adminUid: newUser.uid,
+                createdAt: new Date(),
+            });
+
+            // Store User Data (Role = institution_admin)
+            await setDoc(doc(db, "users", newUser.uid), {
+                uid: newUser.uid,
+                email: newInstEmail,
+                displayName: newInstName,
+                role: 'institution_admin',
+                institutionId: institutionId,
+                createdAt: new Date(),
+                lastLogin: null
+            });
+
+            setMessage("✅ Institution Created Successfully!");
+            setNewInstName("");
+            setNewInstEmail("");
+            setNewInstPassword("");
+            fetchInstitutions();
+
+        } catch (err: any) {
+            console.error("Creation Error:", err);
+            if (err.code === 'auth/email-already-in-use') {
+                alert("Error: Email already in use.");
+            } else {
+                alert("Error creating institution: " + err.message);
+            }
+        } finally {
+            // Clean up secondary app
+            if (secondaryApp) {
+                const { deleteApp } = await import("firebase/app");
+                await deleteApp(secondaryApp);
+            }
+            setCreatingInst(false);
+        }
+    };
+
+    if (loading || (userRole !== "admin" && userRole !== "institution_admin")) return <div className="p-8 text-center text-white">Loading Panel...</div>;
+
+    const [showPassword, setShowPassword] = useState(false);
+    const [showEditPassword, setShowEditPassword] = useState(false); // For the inline edit
 
     return (
         <div className="min-h-screen bg-[var(--background)] p-4 sm:p-8 text-[var(--foreground)]">
             <header className="mb-6 sm:mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <h1 className="text-2xl sm:text-3xl font-bold text-[var(--saffron)]">Admin Dashboard</h1>
                 <div className="flex gap-2 sm:gap-4 w-full sm:w-auto">
-                    <button
-                        onClick={() => setActiveTab("content")}
-                        className={`flex-1 sm:flex-none rounded px-3 sm:px-4 py-2 text-sm ${activeTab === 'content' ? 'bg-[var(--saffron)] text-white' : 'bg-gray-800'}`}
-                    >
-                        Content
-                    </button>
-                    <button
-                        onClick={() => setActiveTab("admins")}
-                        className={`flex-1 sm:flex-none rounded-lg px-3 sm:px-4 py-2 text-sm font-medium transition ${activeTab === "admins"
-                            ? "bg-[var(--saffron)] text-white"
-                            : "bg-white/5 text-gray-400 hover:bg-white/10"
-                            }`}
-                    >
-                        Users
-                    </button>
-                    <button
-                        onClick={() => setActiveTab("database")}
-                        className={`flex-1 sm:flex-none rounded-lg px-3 sm:px-4 py-2 text-sm font-medium transition ${activeTab === "database"
-                            ? "bg-[var(--saffron)] text-white"
-                            : "bg-white/5 text-gray-400 hover:bg-white/10"
-                            }`}
-                    >
-                        Database
-                    </button>
-                    <button
-                        onClick={() => setActiveTab("settings")}
-                        className={`flex-1 sm:flex-none rounded-lg px-3 sm:px-4 py-2 text-sm font-medium transition ${activeTab === "settings"
-                            ? "bg-[var(--saffron)] text-white"
-                            : "bg-white/5 text-gray-400 hover:bg-white/10"
-                            }`}
-                    >
-                        Settings
-                    </button>
-                    <button
-                        onClick={() => setActiveTab("dynamic")}
-                        className={`flex-1 sm:flex-none rounded-lg px-3 sm:px-4 py-2 text-sm font-medium transition ${activeTab === "dynamic"
-                            ? "bg-[var(--saffron)] text-white"
-                            : "bg-white/5 text-gray-400 hover:bg-white/10"
-                            }`}
-                    >
-                        Dynamic Content
-                    </button>
+                    {userRole === "admin" && (
+                        <>
+                            <button
+                                onClick={() => setActiveTab("content")}
+                                className={`flex-1 sm:flex-none rounded px-3 sm:px-4 py-2 text-sm ${activeTab === 'content' ? 'bg-[var(--saffron)] text-white' : 'bg-gray-800'}`}
+                            >
+                                Content
+                            </button>
+                            <button
+                                onClick={() => setActiveTab("admins")}
+                                className={`flex-1 sm:flex-none rounded-lg px-3 sm:px-4 py-2 text-sm font-medium transition ${activeTab === "admins"
+                                    ? "bg-[var(--saffron)] text-white"
+                                    : "bg-white/5 text-gray-400 hover:bg-white/10"
+                                    }`}
+                            >
+                                Users
+                            </button>
+                            <button
+                                onClick={() => setActiveTab("database")}
+                                className={`flex-1 sm:flex-none rounded-lg px-3 sm:px-4 py-2 text-sm font-medium transition ${activeTab === "database"
+                                    ? "bg-[var(--saffron)] text-white"
+                                    : "bg-white/5 text-gray-400 hover:bg-white/10"
+                                    }`}
+                            >
+                                Database
+                            </button>
+                            <button
+                                onClick={() => setActiveTab("settings")}
+                                className={`flex-1 sm:flex-none rounded-lg px-3 sm:px-4 py-2 text-sm font-medium transition ${activeTab === "settings"
+                                    ? "bg-[var(--saffron)] text-white"
+                                    : "bg-white/5 text-gray-400 hover:bg-white/10"
+                                    }`}
+                            >
+                                Settings
+                            </button>
+                            <button
+                                onClick={() => setActiveTab("dynamic")}
+                                className={`flex-1 sm:flex-none rounded-lg px-3 sm:px-4 py-2 text-sm font-medium transition ${activeTab === "dynamic"
+                                    ? "bg-[var(--saffron)] text-white"
+                                    : "bg-white/5 text-gray-400 hover:bg-white/10"
+                                    }`}
+                            >
+                                Dynamic Content
+                            </button>
+                            <button
+                                onClick={() => setActiveTab("institutions")}
+                                className={`flex-1 sm:flex-none rounded-lg px-3 sm:px-4 py-2 text-sm font-medium transition ${activeTab === "institutions"
+                                    ? "bg-[var(--saffron)] text-white"
+                                    : "bg-white/5 text-gray-400 hover:bg-white/10"
+                                    }`}
+                            >
+                                Institutions
+                            </button>
+                        </>
+                    )}
+                    {userRole === "institution_admin" && (
+                        <button
+                            onClick={() => setActiveTab("admins")}
+                            className={`flex-1 sm:flex-none rounded-lg px-3 sm:px-4 py-2 text-sm font-medium bg-[var(--saffron)] text-white`}
+                        >
+                            My Students
+                        </button>
+                    )}
                 </div>
             </header>
 
@@ -719,22 +901,25 @@ export default function AdminDashboard() {
                             <h2 className="mb-2 text-xl font-bold">Manage Users & Admins</h2>
                             <p className="text-sm text-gray-400 mb-6">View all registered users and manage their data.</p>
 
-                            {/* Add Admin Form */}
-                            <div className="flex gap-2">
-                                <input
-                                    className="flex-1 rounded bg-gray-800 p-2 text-white border border-gray-700 focus:border-[var(--saffron)]"
-                                    placeholder="Enter email to promote to Admin"
-                                    value={newAdminEmail}
-                                    onChange={e => setNewAdminEmail(e.target.value)}
-                                />
-                                <button
-                                    onClick={handleAddAdmin}
-                                    className="bg-[var(--saffron)] px-4 py-2 text-white rounded hover:brightness-110 font-medium"
-                                >
-                                    Promote
-                                </button>
-                            </div>
-                            {message && <p className="mt-2 text-sm text-[var(--saffron)]">{message}</p>}
+                            {userRole === "admin" && (
+                                <>
+                                    <div className="flex gap-2">
+                                        <input
+                                            className="flex-1 rounded bg-gray-800 p-2 text-white border border-gray-700 focus:border-[var(--saffron)]"
+                                            placeholder="Enter email to promote to Admin"
+                                            value={newAdminEmail}
+                                            onChange={e => setNewAdminEmail(e.target.value)}
+                                        />
+                                        <button
+                                            onClick={handleAddAdmin}
+                                            className="bg-[var(--saffron)] px-4 py-2 text-white rounded hover:brightness-110 font-medium"
+                                        >
+                                            Promote
+                                        </button>
+                                    </div>
+                                    {message && <p className="mt-2 text-sm text-[var(--saffron)]">{message}</p>}
+                                </>
+                            )}
                         </div>
                     </div>
 
@@ -1207,6 +1392,179 @@ export default function AdminDashboard() {
                                 Save Settings
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {activeTab === "institutions" && (
+                <div className="space-y-8">
+                    {/* Create Institution */}
+                    <div className="rounded-xl border border-white/10 bg-white/5 p-6">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="p-2 bg-[var(--saffron)]/20 rounded-lg text-[var(--saffron)]">
+                                <Building size={24} />
+                            </div>
+                            <div>
+                                <h2 className="text-xl font-bold text-[var(--saffron)]">Manage Institutions</h2>
+                                <p className="text-sm text-gray-400">Create login credentials for Schools/Colleges.</p>
+                            </div>
+                        </div>
+
+                        <div className="grid gap-4 md:grid-cols-3 items-end">
+                            <div>
+                                <label className="block text-xs text-gray-500 mb-1">Institution Name</label>
+                                <input
+                                    className="w-full rounded bg-gray-800 p-2 text-white border border-gray-700 focus:border-[var(--saffron)]"
+                                    placeholder="e.g. IIT Bombay"
+                                    value={newInstName}
+                                    onChange={e => setNewInstName(e.target.value)}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs text-gray-500 mb-1">Admin Email</label>
+                                <input
+                                    className="w-full rounded bg-gray-800 p-2 text-white border border-gray-700 focus:border-[var(--saffron)]"
+                                    placeholder="admin@college.edu"
+                                    value={newInstEmail}
+                                    onChange={e => setNewInstEmail(e.target.value)}
+                                />
+                            </div>
+                            <div className="relative">
+                                <label className="block text-xs text-gray-500 mb-1">Password</label>
+                                <div className="relative">
+                                    <input
+                                        className="w-full rounded bg-gray-800 p-2 text-white border border-gray-700 focus:border-[var(--saffron)] pr-10"
+                                        placeholder="Min 6 chars"
+                                        type={showPassword ? "text" : "password"}
+                                        value={newInstPassword}
+                                        onChange={e => setNewInstPassword(e.target.value)}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                                    >
+                                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <button
+                            onClick={handleCreateInstitution}
+                            disabled={creatingInst}
+                            className="mt-4 flex items-center gap-2 rounded bg-[var(--saffron)] px-4 py-2 font-bold text-white hover:brightness-110 disabled:opacity-50"
+                        >
+                            {creatingInst ? <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" /> : <Plus size={18} />}
+                            Create Institution
+                        </button>
+                    </div>
+
+                    {/* List Institutions */}
+                    <div className="rounded-xl border border-white/10 bg-white/5 overflow-hidden">
+                        <table className="w-full text-left text-sm text-gray-400">
+                            <thead className="bg-white/5 text-[var(--saffron)] font-bold">
+                                <tr>
+                                    <th className="p-4">Name</th>
+                                    <th className="p-4">Admin Email</th>
+                                    <th className="p-4">Integration ID</th>
+                                    <th className="p-4">Created At</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {institutions.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={4} className="p-8 text-center text-gray-500">No institutions found.</td>
+                                    </tr>
+                                ) : (
+                                    institutions.map((inst) => (
+                                        <tr key={inst.id} className="border-b border-white/5 hover:bg-white/5">
+                                            {editingInstId === inst.id ? (
+                                                <>
+                                                    <td className="p-4">
+                                                        <input
+                                                            className="w-full rounded bg-gray-800 p-2 text-white border border-gray-700 focus:border-[var(--saffron)]"
+                                                            value={instEditForm.name}
+                                                            onChange={e => setInstEditForm({ ...instEditForm, name: e.target.value })}
+                                                            placeholder="Name"
+                                                        />
+                                                    </td>
+                                                    <td className="p-4">
+                                                        <input
+                                                            className="w-full rounded bg-gray-800 p-2 text-white border border-gray-700 focus:border-[var(--saffron)]"
+                                                            value={instEditForm.email}
+                                                            onChange={e => setInstEditForm({ ...instEditForm, email: e.target.value })}
+                                                            placeholder="Email"
+                                                        />
+                                                    </td>
+                                                    <td className="p-4" colSpan={2}>
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="relative flex-1">
+                                                                <input
+                                                                    className="w-full rounded bg-gray-800 p-2 text-white border border-gray-700 focus:border-[var(--saffron)] pr-10"
+                                                                    value={instEditForm.password}
+                                                                    onChange={e => setInstEditForm({ ...instEditForm, password: e.target.value })}
+                                                                    placeholder="New Password (Optional)"
+                                                                    type={showEditPassword ? "text" : "password"}
+                                                                />
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setShowEditPassword(!showEditPassword)}
+                                                                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                                                                >
+                                                                    {showEditPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                                                </button>
+                                                            </div>
+                                                            <button
+                                                                onClick={handleUpdateInstitution}
+                                                                className="p-2 bg-green-600 rounded text-white hover:bg-green-700"
+                                                                title="Save"
+                                                            >
+                                                                <Save size={18} />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => {
+                                                                    setEditingInstId(null);
+                                                                    setInstEditForm({ name: "", email: "", password: "" });
+                                                                }}
+                                                                className="p-2 bg-gray-600 rounded text-white hover:bg-gray-700"
+                                                                title="Cancel"
+                                                            >
+                                                                <X size={18} />
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <td className="p-4 font-bold text-white flex items-center gap-2">
+                                                        <Building size={16} className="text-gray-500" /> {inst.name}
+                                                    </td>
+                                                    <td className="p-4">{inst.adminEmail}</td>
+                                                    <td className="p-4 font-mono text-xs text-gray-500 select-all">{inst.id}</td>
+                                                    <td className="p-4 flex items-center justify-between">
+                                                        <span>{inst.createdAt?.toDate ? inst.createdAt.toDate().toLocaleDateString() : 'N/A'}</span>
+                                                        <button
+                                                            onClick={() => {
+                                                                setEditingInstId(inst.id);
+                                                                setInstEditForm({
+                                                                    name: inst.name,
+                                                                    email: inst.adminEmail,
+                                                                    password: inst.password || ""
+                                                                });
+                                                            }}
+                                                            className="p-2 text-gray-400 hover:text-[var(--saffron)] transition-colors"
+                                                            title="Edit Institution"
+                                                        >
+                                                            <Edit size={18} />
+                                                        </button>
+                                                    </td>
+                                                </>
+                                            )}
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             )}

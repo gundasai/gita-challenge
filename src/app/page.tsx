@@ -132,6 +132,19 @@ export default function Home() {
 
   // Dashboard View (Logged in + Access)
   if (user && (canAccess || userRole === "admin")) {
+    // Redirect pending users to waiting page
+    if (userData?.status === 'pending' && userData?.institutionId) {
+      // Use window.location for full redirect to avoid issues, or router
+      // Since we are in a component, returning null and using useEffect is better, 
+      // but here we are in render logic. 
+      // Let's use a return statement with a redirect effect or just return the waiting component?
+      // Better to redirect.
+      if (typeof window !== 'undefined') {
+        window.location.href = "/waiting";
+        return null;
+      }
+    }
+
     const currentDay = userData?.currentDay !== undefined ? userData.currentDay : 0;
     const daysCompleted = userData?.daysCompleted || [];
     // daysCompleted is array of IDs (e.g. [0, 1]).
@@ -157,7 +170,7 @@ export default function Home() {
                 </Link>
               )}
 
-              {userData?.daysCompleted?.includes(21) && (
+              {userData?.daysCompleted?.includes(21) && !userData?.institutionId && (
                 <Link
                   href="/donate"
                   className="flex items-center gap-2 rounded-xl border border-[var(--saffron)]/40 bg-[var(--saffron)]/10 px-4 py-2 font-bold text-[var(--saffron)] transition-all hover:scale-105 hover:bg-[var(--saffron)]/20 hover:border-[var(--saffron)] shadow-lg shadow-orange-500/5 hover:shadow-orange-500/20"
@@ -203,9 +216,7 @@ export default function Home() {
           transition={{ duration: 1, ease: "easeOut" }}
           className="relative z-10 max-w-5xl space-y-8 text-center"
         >
-          <div className="inline-block rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-[var(--saffron)] backdrop-blur-md">
-            Starting January 1st
-          </div>
+
 
           <h1 className="bg-gradient-to-b from-white via-[var(--cream)] to-[var(--saffron)] bg-clip-text text-5xl font-black tracking-tight text-transparent sm:text-8xl">
             Gita Wisdom Course
@@ -229,6 +240,19 @@ export default function Home() {
               className="rounded-full border border-white/10 bg-white/5 px-10 py-5 text-lg font-semibold text-white backdrop-blur-md transition-all hover:bg-white/10"
             >
               Learn More
+            </Link>
+          </div>
+
+          <div className="pt-8">
+            <Link
+              href="/iks"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-blue-900/40 to-purple-900/40 border border-blue-500/30 hover:border-blue-400/50 transition-all hover:scale-105"
+            >
+              <div className="flex flex-col text-left">
+                <span className="text-white font-bold">Indian Knowledge Systems</span>
+                <span className="text-[10px] text-blue-200/80 font-medium">A portal for Educational Institutions</span>
+              </div>
+              <ArrowRight className="h-4 w-4 text-blue-300" />
             </Link>
           </div>
         </motion.div>
