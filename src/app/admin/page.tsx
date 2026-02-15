@@ -23,6 +23,9 @@ export default function AdminDashboard() {
     const [whatsappLink, setWhatsappLink] = useState("");
     const [leaderboardLimit, setLeaderboardLimit] = useState(50);
 
+    // Content Management State
+    const [activeContentTab, setActiveContentTab] = useState<'level1' | 'level2'>('level1');
+
     // Database Explorer State
     const [explorerCollection, setExplorerCollection] = useState("users");
     const [explorerDocs, setExplorerDocs] = useState<any[]>([]);
@@ -43,6 +46,7 @@ export default function AdminDashboard() {
     const [newInstEmail, setNewInstEmail] = useState("");
     const [newInstPassword, setNewInstPassword] = useState("");
     const [creatingInst, setCreatingInst] = useState(false);
+    const [deleteConfirmation, setDeleteConfirmation] = useState<{ id: string, name: string } | null>(null);
 
 
 
@@ -285,6 +289,59 @@ export default function AdminDashboard() {
             fetchDays();
         } catch (err) {
             setMessage("Error updating day: " + err);
+        }
+    };
+
+
+    const handleAutoFillDates = async (startId: number, startDateStr: string, isWeekly: boolean) => {
+        const intervalText = isWeekly ? "weeks" : "days";
+        if (!confirm(`Are you sure? This will overwrite the unlock dates for all subsequent ${intervalText} based on this start date.`)) return;
+
+        try {
+            setMessage(`Auto-filling dates...`);
+            const startDate = new Date(startDateStr);
+            const endId = isWeekly ? 42 : 21; // Level 1 ends at 21, Level 2 ends at 42
+
+            // We need to fetch the existing days first to preserve other data (title, desc, etc.)
+            // Make sure 'days' state is up to date or fetch fresh. We use 'days' state here.
+            // A better approach for bulk update is to read-modify-write or just use setDoc with merge if we only want to update date.
+            // But here we might want to ensure we don't wipe other fields if we use setDoc without merge:true (which creates if not exists).
+            // Since all days should exist, updateDoc is safer, or setDoc with merge: true.
+
+            // Using setDoc with merge: true to be safe and simple.
+
+            let count = 0;
+            for (let id = startId + 1; id <= endId; id++) {
+                const dayOffset = id - startId;
+                // Calculate new date
+                // If weekly: offset * 7 days. If daily: offset * 1 day.
+                const daysToAdd = isWeekly ? dayOffset * 7 : dayOffset;
+
+                const newDate = new Date(startDate);
+                newDate.setDate(startDate.getDate() + daysToAdd);
+
+                // Format to datetime-local string (YYYY-MM-DDTHH:mm) for consistency if stored as string, 
+                // OR store as ISO string. The app seems to use string in editForm.unlockDate.
+                // Course data might store it as string or timestamp? 
+                // Looking at fetchStartDate, it handles Timestamp. 
+                // Let's store as ISO string to be safe, or whatever existing format is.
+                // The editForm uses e.target.value which is YYYY-MM-DDTHH:mm. 
+                // Let's stick to that format for the string field.
+
+                const formattedDate = newDate.toISOString().slice(0, 16);
+
+                await setDoc(doc(db, "days", `day_${id}`), {
+                    unlockDate: formattedDate
+                }, { merge: true });
+
+                count++;
+            }
+
+            setMessage(`✅ Successfully auto-filled dates for next ${count} ${intervalText}!`);
+            fetchDays(); // Refresh UI
+        } catch (err) {
+            console.error(err);
+            setMessage("❌ Error auto-filling dates: " + err);
         }
     };
 
@@ -724,6 +781,26 @@ export default function AdminDashboard() {
 
             {activeTab === "content" && (
                 <div className="space-y-6">
+                    {/* Level Toggle */}
+                    <div className="flex gap-4 mb-6 border-b border-white/10 pb-4">
+                        <button
+                            onClick={() => setActiveContentTab('level1')}
+                            className={`px-4 py-2 rounded-lg font-bold transition ${activeContentTab === 'level1'
+                                ? "bg-[var(--saffron)] text-white"
+                                : "bg-white/5 text-gray-400 hover:bg-white/10"}`}
+                        >
+                            Level 1 (Days 0-21)
+                        </button>
+                        <button
+                            onClick={() => setActiveContentTab('level2')}
+                            className={`px-4 py-2 rounded-lg font-bold transition ${activeContentTab === 'level2'
+                                ? "bg-[var(--saffron)] text-white"
+                                : "bg-white/5 text-gray-400 hover:bg-white/10"}`}
+                        >
+                            Level 2 (Weeks 1-21)
+                        </button>
+                    </div>
+
                     {/* Check if Day 0 exists. If not, show alert. */}
                     {!days.some(d => d.id === 0) && (
                         <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -745,6 +822,46 @@ export default function AdminDashboard() {
                         </div>
                     )}
 
+                    {/* Level 2 Initialization */}
+                    {activeContentTab === 'level2' && !days.some(d => d.id >= 22) && (
+                        <div className="rounded-xl border border-blue-500/30 bg-blue-500/10 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-blue-500/20 rounded-lg text-blue-500">
+                                    <Building size={24} />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-blue-500">Initialize Level 2</h3>
+                                    <p className="text-sm text-blue-200/70">Create placeholders for Level 2 (Weeks 1-21).</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={async () => {
+                                    if (!confirm("Create placeholders for Level 2 (Weeks 1-21)?")) return;
+                                    setMessage("Initializing Level 2...");
+                                    try {
+                                        for (let i = 22; i <= 42; i++) {
+                                            await setDoc(doc(db, "days", `day_${i}`), {
+                                                id: i,
+                                                title: `Level 2 - Day ${i - 21}`,
+                                                description: "Advanced Topic",
+                                                videoId: "",
+                                                quiz: []
+                                            });
+                                        }
+                                        setMessage("Level 2 Initialized!");
+                                        fetchDays();
+                                    } catch (e) {
+                                        console.error(e);
+                                        setMessage("Error: " + e);
+                                    }
+                                }}
+                                className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-lg transition whitespace-nowrap"
+                            >
+                                Initialize Level 2
+                            </button>
+                        </div>
+                    )}
+
                     {days.length === 0 ? (
                         <div className="text-center">
                             <p className="mb-4 text-gray-400">No content found in Firestore.</p>
@@ -754,140 +871,161 @@ export default function AdminDashboard() {
                         </div>
                     ) : (
                         <div className="grid gap-6">
-                            {days.map((day) => (
-                                <div key={day.id} className="rounded-xl border border-white/10 bg-white/5 p-6">
-                                    {isEditing === day.id ? (
-                                        <div className="space-y-4">
-                                            <input
-                                                className="w-full rounded bg-gray-800 p-3 text-white border border-gray-700 focus:border-[var(--saffron)] focus:ring-1 focus:ring-[var(--saffron)]"
-                                                value={editForm.title}
-                                                onChange={e => setEditForm({ ...editForm, title: e.target.value })}
-                                                placeholder="Title"
-                                            />
-                                            <textarea
-                                                className="w-full rounded bg-gray-800 p-3 text-white border border-gray-700 focus:border-[var(--saffron)] focus:ring-1 focus:ring-[var(--saffron)]"
-                                                value={editForm.description}
-                                                onChange={e => setEditForm({ ...editForm, description: e.target.value })}
-                                                placeholder="Description"
-                                                rows={3}
-                                            />
-                                            <input
-                                                className="w-full rounded bg-gray-800 p-3 text-white border border-gray-700 focus:border-[var(--saffron)] focus:ring-1 focus:ring-[var(--saffron)]"
-                                                value={editForm.videoId}
-                                                onChange={e => setEditForm({ ...editForm, videoId: e.target.value })}
-                                                placeholder="YouTube Video ID"
-                                            />
-                                            <div className="flex flex-col gap-2">
-                                                <label className="text-sm text-gray-400">Unlock Date & Time</label>
+                            {days
+                                .filter(day => {
+                                    if (activeContentTab === 'level1') return day.id <= 21;
+                                    if (activeContentTab === 'level2') return day.id >= 22;
+                                    return false;
+                                })
+                                .map((day) => (
+                                    <div key={day.id} className="rounded-xl border border-white/10 bg-white/5 p-6">
+                                        {isEditing === day.id ? (
+                                            <div className="space-y-4">
                                                 <input
-                                                    type="datetime-local"
                                                     className="w-full rounded bg-gray-800 p-3 text-white border border-gray-700 focus:border-[var(--saffron)] focus:ring-1 focus:ring-[var(--saffron)]"
-                                                    value={editForm.unlockDate || ""}
-                                                    onChange={e => setEditForm({ ...editForm, unlockDate: e.target.value })}
+                                                    value={editForm.title}
+                                                    onChange={e => setEditForm({ ...editForm, title: e.target.value })}
+                                                    placeholder="Title"
                                                 />
-                                            </div>
-                                            <div className="border-t border-gray-700 pt-4">
-                                                <h4 className="mb-2 text-lg font-bold text-[var(--cream)]">Quiz Builder</h4>
-                                                <div className="space-y-4">
-                                                    {(editForm.quiz || []).map((q: any, qIdx: number) => (
-                                                        <div key={qIdx} className="rounded border border-white/10 bg-gray-900 p-4">
-                                                            <div className="mb-2 flex items-center gap-2">
-                                                                <input
-                                                                    className="flex-1 rounded bg-gray-800 p-2 text-white border border-gray-700 focus:border-[var(--saffron)]"
-                                                                    value={q.question}
-                                                                    onChange={e => {
-                                                                        const newQuiz = [...editForm.quiz];
-                                                                        newQuiz[qIdx].question = e.target.value;
-                                                                        setEditForm({ ...editForm, quiz: newQuiz });
-                                                                    }}
-                                                                    placeholder="Question"
-                                                                />
-                                                                <input
-                                                                    type="number"
-                                                                    className="w-20 rounded bg-gray-800 p-2 text-white border border-gray-700 focus:border-[var(--saffron)]"
-                                                                    value={q.marks || 1}
-                                                                    onChange={e => {
-                                                                        const newQuiz = [...editForm.quiz];
-                                                                        newQuiz[qIdx].marks = parseInt(e.target.value) || 1;
-                                                                        setEditForm({ ...editForm, quiz: newQuiz });
-                                                                    }}
-                                                                    placeholder="Marks"
-                                                                />
-                                                                <button
-                                                                    onClick={() => {
-                                                                        const newQuiz = [...editForm.quiz];
-                                                                        newQuiz.splice(qIdx, 1);
-                                                                        setEditForm({ ...editForm, quiz: newQuiz });
-                                                                    }}
-                                                                    className="text-red-400 hover:text-red-300"
-                                                                >
-                                                                    <Trash2 size={18} />
-                                                                </button>
+                                                <textarea
+                                                    className="w-full rounded bg-gray-800 p-3 text-white border border-gray-700 focus:border-[var(--saffron)] focus:ring-1 focus:ring-[var(--saffron)]"
+                                                    value={editForm.description}
+                                                    onChange={e => setEditForm({ ...editForm, description: e.target.value })}
+                                                    placeholder="Description"
+                                                    rows={3}
+                                                />
+                                                <input
+                                                    className="w-full rounded bg-gray-800 p-3 text-white border border-gray-700 focus:border-[var(--saffron)] focus:ring-1 focus:ring-[var(--saffron)]"
+                                                    value={editForm.videoId}
+                                                    onChange={e => setEditForm({ ...editForm, videoId: e.target.value })}
+                                                    placeholder="YouTube Video ID"
+                                                />
+                                                <div className="flex flex-col gap-2">
+                                                    <label className="text-sm text-gray-400">Unlock Date & Time</label>
+                                                    <div className="flex gap-2">
+                                                        <input
+                                                            type="datetime-local"
+                                                            className="w-full rounded bg-gray-800 p-3 text-white border border-gray-700 focus:border-[var(--saffron)] focus:ring-1 focus:ring-[var(--saffron)]"
+                                                            value={editForm.unlockDate || ""}
+                                                            onChange={e => setEditForm({ ...editForm, unlockDate: e.target.value })}
+                                                        />
+                                                        {/* Auto-fill Button for Day 1 and Day 22 */}
+                                                        {((day.id === 1 && activeContentTab === 'level1') || (day.id === 22 && activeContentTab === 'level2')) && (
+                                                            <button
+                                                                onClick={() => {
+                                                                    if (!editForm.unlockDate) return alert("Please set a date first.");
+                                                                    handleAutoFillDates(day.id, editForm.unlockDate, activeContentTab === 'level2');
+                                                                }}
+                                                                className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-bold whitespace-nowrap"
+                                                                title={activeContentTab === 'level2' ? "Auto-fill next 20 weeks" : "Auto-fill next 20 days"}
+                                                            >
+                                                                Auto-fill Next
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <div className="border-t border-gray-700 pt-4">
+                                                    <h4 className="mb-2 text-lg font-bold text-[var(--cream)]">Quiz Builder</h4>
+                                                    <div className="space-y-4">
+                                                        {(editForm.quiz || []).map((q: any, qIdx: number) => (
+                                                            <div key={qIdx} className="rounded border border-white/10 bg-gray-900 p-4">
+                                                                <div className="mb-2 flex items-center gap-2">
+                                                                    <input
+                                                                        className="flex-1 rounded bg-gray-800 p-2 text-white border border-gray-700 focus:border-[var(--saffron)]"
+                                                                        value={q.question}
+                                                                        onChange={e => {
+                                                                            const newQuiz = [...editForm.quiz];
+                                                                            newQuiz[qIdx].question = e.target.value;
+                                                                            setEditForm({ ...editForm, quiz: newQuiz });
+                                                                        }}
+                                                                        placeholder="Question"
+                                                                    />
+                                                                    <input
+                                                                        type="number"
+                                                                        className="w-20 rounded bg-gray-800 p-2 text-white border border-gray-700 focus:border-[var(--saffron)]"
+                                                                        value={q.marks || 1}
+                                                                        onChange={e => {
+                                                                            const newQuiz = [...editForm.quiz];
+                                                                            newQuiz[qIdx].marks = parseInt(e.target.value) || 1;
+                                                                            setEditForm({ ...editForm, quiz: newQuiz });
+                                                                        }}
+                                                                        placeholder="Marks"
+                                                                    />
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            const newQuiz = [...editForm.quiz];
+                                                                            newQuiz.splice(qIdx, 1);
+                                                                            setEditForm({ ...editForm, quiz: newQuiz });
+                                                                        }}
+                                                                        className="text-red-400 hover:text-red-300"
+                                                                    >
+                                                                        <Trash2 size={18} />
+                                                                    </button>
+                                                                </div>
+                                                                <div className="grid grid-cols-2 gap-2">
+                                                                    {q.options.map((opt: string, oIdx: number) => (
+                                                                        <div key={oIdx} className="flex items-center gap-2">
+                                                                            <input
+                                                                                type="radio"
+                                                                                name={`correct-${qIdx}`}
+                                                                                checked={q.correctAnswer === oIdx}
+                                                                                onChange={() => {
+                                                                                    const newQuiz = [...editForm.quiz];
+                                                                                    newQuiz[qIdx].correctAnswer = oIdx;
+                                                                                    setEditForm({ ...editForm, quiz: newQuiz });
+                                                                                }}
+                                                                            />
+                                                                            <input
+                                                                                className="w-full rounded bg-gray-800 p-2 text-sm text-white border border-gray-700 focus:border-[var(--saffron)]"
+                                                                                value={opt}
+                                                                                onChange={e => {
+                                                                                    const newQuiz = [...editForm.quiz];
+                                                                                    newQuiz[qIdx].options[oIdx] = e.target.value;
+                                                                                    setEditForm({ ...editForm, quiz: newQuiz });
+                                                                                }}
+                                                                            />
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
                                                             </div>
-                                                            <div className="grid grid-cols-2 gap-2">
-                                                                {q.options.map((opt: string, oIdx: number) => (
-                                                                    <div key={oIdx} className="flex items-center gap-2">
-                                                                        <input
-                                                                            type="radio"
-                                                                            name={`correct-${qIdx}`}
-                                                                            checked={q.correctAnswer === oIdx}
-                                                                            onChange={() => {
-                                                                                const newQuiz = [...editForm.quiz];
-                                                                                newQuiz[qIdx].correctAnswer = oIdx;
-                                                                                setEditForm({ ...editForm, quiz: newQuiz });
-                                                                            }}
-                                                                        />
-                                                                        <input
-                                                                            className="w-full rounded bg-gray-800 p-2 text-sm text-white border border-gray-700 focus:border-[var(--saffron)]"
-                                                                            value={opt}
-                                                                            onChange={e => {
-                                                                                const newQuiz = [...editForm.quiz];
-                                                                                newQuiz[qIdx].options[oIdx] = e.target.value;
-                                                                                setEditForm({ ...editForm, quiz: newQuiz });
-                                                                            }}
-                                                                        />
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                    <button
-                                                        onClick={() => setEditForm({
-                                                            ...editForm, quiz: [...(editForm.quiz || []), {
-                                                                question: "New Question",
-                                                                options: ["Option A", "Option B", "Option C", "Option D"],
-                                                                correctAnswer: 0,
-                                                                marks: 5
-                                                            }]
-                                                        })}
-                                                        className="flex items-center gap-2 rounded bg-white/10 px-3 py-1 text-sm text-white hover:bg-white/20"
-                                                    >
-                                                        <Plus size={16} /> Add Question
-                                                    </button>
+                                                        ))}
+                                                        <button
+                                                            onClick={() => setEditForm({
+                                                                ...editForm, quiz: [...(editForm.quiz || []), {
+                                                                    question: "New Question",
+                                                                    options: ["Option A", "Option B", "Option C", "Option D"],
+                                                                    correctAnswer: 0,
+                                                                    marks: 5
+                                                                }]
+                                                            })}
+                                                            className="flex items-center gap-2 rounded bg-white/10 px-3 py-1 text-sm text-white hover:bg-white/20"
+                                                        >
+                                                            <Plus size={16} /> Add Question
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                <div className="flex justify-end gap-2">
+                                                    <button onClick={() => setIsEditing(null)} className="px-4 py-2 text-gray-400">Cancel</button>
+                                                    <button onClick={handleSaveDay} className="flex items-center gap-2 rounded bg-green-600 px-4 py-2 text-white"><Save size={16} /> Save</button>
                                                 </div>
                                             </div>
-                                            <div className="flex justify-end gap-2">
-                                                <button onClick={() => setIsEditing(null)} className="px-4 py-2 text-gray-400">Cancel</button>
-                                                <button onClick={handleSaveDay} className="flex items-center gap-2 rounded bg-green-600 px-4 py-2 text-white"><Save size={16} /> Save</button>
+                                        ) : (
+                                            <div className="flex items-start justify-between">
+                                                <div>
+                                                    <h3 className="text-xl font-bold text-[var(--cream)]">Day {day.id}: {day.title}</h3>
+                                                    <p className="text-gray-400">{day.description}</p>
+                                                    <p className="mt-2 text-xs text-gray-500">Video ID: {day.videoId}</p>
+                                                </div>
+                                                <button
+                                                    onClick={() => { setIsEditing(day.id); setEditForm(day); }}
+                                                    className="rounded p-2 text-gray-400 hover:bg-white/10 hover:text-white"
+                                                >
+                                                    <Edit size={20} />
+                                                </button>
                                             </div>
-                                        </div>
-                                    ) : (
-                                        <div className="flex items-start justify-between">
-                                            <div>
-                                                <h3 className="text-xl font-bold text-[var(--cream)]">Day {day.id}: {day.title}</h3>
-                                                <p className="text-gray-400">{day.description}</p>
-                                                <p className="mt-2 text-xs text-gray-500">Video ID: {day.videoId}</p>
-                                            </div>
-                                            <button
-                                                onClick={() => { setIsEditing(day.id); setEditForm(day); }}
-                                                className="rounded p-2 text-gray-400 hover:bg-white/10 hover:text-white"
-                                            >
-                                                <Edit size={20} />
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-                            ))}
+                                        )}
+                                    </div>
+                                ))}
                         </div>
                     )}
                 </div>
@@ -1543,20 +1681,29 @@ export default function AdminDashboard() {
                                                     <td className="p-4 font-mono text-xs text-gray-500 select-all">{inst.id}</td>
                                                     <td className="p-4 flex items-center justify-between">
                                                         <span>{inst.createdAt?.toDate ? inst.createdAt.toDate().toLocaleDateString() : 'N/A'}</span>
-                                                        <button
-                                                            onClick={() => {
-                                                                setEditingInstId(inst.id);
-                                                                setInstEditForm({
-                                                                    name: inst.name,
-                                                                    email: inst.adminEmail,
-                                                                    password: inst.password || ""
-                                                                });
-                                                            }}
-                                                            className="p-2 text-gray-400 hover:text-[var(--saffron)] transition-colors"
-                                                            title="Edit Institution"
-                                                        >
-                                                            <Edit size={18} />
-                                                        </button>
+                                                        <div className="flex gap-2">
+                                                            <button
+                                                                onClick={() => {
+                                                                    setEditingInstId(inst.id);
+                                                                    setInstEditForm({
+                                                                        name: inst.name,
+                                                                        email: inst.adminEmail,
+                                                                        password: inst.password || ""
+                                                                    });
+                                                                }}
+                                                                className="p-2 text-gray-400 hover:text-[var(--saffron)] transition-colors"
+                                                                title="Edit Institution"
+                                                            >
+                                                                <Edit size={18} />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => setDeleteConfirmation({ id: inst.id, name: inst.name })}
+                                                                className="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                                                                title="Delete Institution"
+                                                            >
+                                                                <Trash2 size={18} />
+                                                            </button>
+                                                        </div>
                                                     </td>
                                                 </>
                                             )}
@@ -1568,6 +1715,63 @@ export default function AdminDashboard() {
                     </div>
                 </div>
             )}
+            {/* Custom Delete Confirmation Modal */}
+            {
+                deleteConfirmation && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+                        <div className="w-full max-w-md rounded-xl border border-white/10 bg-gray-900 p-6 shadow-2xl">
+                            <div className="mb-4 flex items-center justify-center rounded-full bg-red-500/20 p-4 w-16 h-16 mx-auto">
+                                <Trash2 size={32} className="text-red-500" />
+                            </div>
+                            <h3 className="mb-2 text-xl font-bold text-center text-white">Delete Institution?</h3>
+                            <p className="mb-6 text-center text-gray-400">
+                                Are you sure you want to delete <span className="font-bold text-white">{deleteConfirmation.name}</span>?
+                                <br />
+                                <span className="text-red-400 text-xs">
+                                    ⚠️ <span className="font-bold">WARNING:</span> This operation is <span className="font-bold underline">DESTRUCTIVE</span>.
+                                    <br />
+                                    It will permanently delete the institution, its admin account, <span className="font-bold text-white">AND ALL USERS associated with it</span>.
+                                    <br />
+                                    This action cannot be undone.
+                                </span>
+                            </p>
+                            <div className="flex justify-center gap-3">
+                                <button
+                                    onClick={() => setDeleteConfirmation(null)}
+                                    className="rounded px-6 py-2 text-sm font-medium text-gray-300 hover:text-white hover:bg-white/10 transition"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={async () => {
+                                        try {
+                                            const res = await fetch('/api/admin/delete-institution', {
+                                                method: 'POST',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({ institutionId: deleteConfirmation.id })
+                                            });
+                                            const data = await res.json();
+                                            if (res.ok) {
+                                                setMessage("✅ Institution Deleted Successfully!");
+                                                fetchInstitutions();
+                                            } else {
+                                                alert("Error: " + data.error);
+                                            }
+                                        } catch (err: any) {
+                                            alert("Error deleting institution: " + err.message);
+                                        } finally {
+                                            setDeleteConfirmation(null);
+                                        }
+                                    }}
+                                    className="rounded bg-red-600 px-6 py-2 text-sm font-bold text-white shadow-lg shadow-red-500/20 transition hover:bg-red-700 hover:scale-105 active:scale-95"
+                                >
+                                    Delete Institution
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
         </div>
     );
 }

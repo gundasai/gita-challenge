@@ -2,6 +2,7 @@
 
 import { useAuth } from "@/context/AuthContext";
 import DashboardGrid from "@/components/DashboardGrid";
+import Level2Grid from "@/components/Level2Grid";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -147,8 +148,20 @@ export default function Home() {
 
     const currentDay = userData?.currentDay !== undefined ? userData.currentDay : 0;
     const daysCompleted = userData?.daysCompleted || [];
-    // daysCompleted is array of IDs (e.g. [0, 1]).
-    const completedCount = daysCompleted.length;
+
+    // Level 1 Logic: Count distinct days with ID <= 21 (Total 22 days: 0-21)
+    const level1DaysCompleted = new Set(daysCompleted.filter((id: number) => id <= 21));
+    const completedCount = level1DaysCompleted.size;
+
+    // Calculate Level 1 Score (Sum of scores for days 0-21)
+    let level1Score = 0;
+    if (userData?.quizScores) {
+      Object.entries(userData.quizScores).forEach(([dayId, score]) => {
+        if (parseInt(dayId) <= 21) {
+          level1Score += (score as number);
+        }
+      });
+    }
 
     return (
       <main className="min-h-screen bg-[var(--background)] p-6 sm:p-12">
@@ -183,7 +196,7 @@ export default function Home() {
               <div className="flex items-center gap-4 rounded-xl bg-white/5 p-4 border border-white/10 shadow-2xl">
                 <div className="text-center">
                   <p className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Total Marks</p>
-                  <p className="text-xl font-bold text-[var(--saffron)]">{userData?.totalScore || 0}</p>
+                  <p className="text-xl font-bold text-[var(--saffron)]">{level1Score}</p>
                 </div>
                 <div className="h-8 w-px bg-white/10"></div>
                 <div className="text-center">
@@ -195,6 +208,23 @@ export default function Home() {
           </header>
 
           <DashboardGrid currentDay={currentDay} daysCompleted={daysCompleted} daysData={daysData} />
+
+          {/* Level 2 Section - Only visible after completing Level 1 (Day 21) */}
+          {daysCompleted.includes(21) && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              className="pt-12 space-y-8"
+            >
+              <div className="flex items-center gap-4">
+                <div className="h-px flex-1 bg-gradient-to-r from-transparent to-blue-500/30"></div>
+                <h2 className="text-2xl font-bold text-blue-400 uppercase tracking-widest text-center">Level 2: Advanced Wisdom</h2>
+                <div className="h-px flex-1 bg-gradient-to-l from-transparent to-blue-500/30"></div>
+              </div>
+              <Level2Grid currentDay={currentDay} daysCompleted={daysCompleted} daysData={daysData} />
+            </motion.div>
+          )}
         </div>
       </main>
     );

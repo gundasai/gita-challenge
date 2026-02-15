@@ -5,8 +5,9 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { LogOut, Check, X, UserCheck, UserX } from "lucide-react";
+import { LogOut, Check, X, UserCheck, UserX, Heart } from "lucide-react";
 import { doc, updateDoc, deleteDoc } from "firebase/firestore";
+import Link from "next/link";
 
 export default function InstitutionDashboard() {
     const { user, userData, loading, logout } = useAuth();
@@ -130,13 +131,22 @@ export default function InstitutionDashboard() {
                             Track your students' progress in the Gita Wisdom Course
                         </p>
                     </div>
-                    <button
-                        onClick={handleLogout}
-                        className="flex items-center gap-2 rounded-full bg-white/10 px-6 py-2 text-sm font-medium text-white transition hover:bg-white/20"
-                    >
-                        <LogOut size={16} />
-                        Logout
-                    </button>
+                    <div className="flex gap-4 items-center">
+                        <Link
+                            href="/donate"
+                            className="flex items-center gap-2 rounded-xl border border-[var(--saffron)]/40 bg-[var(--saffron)]/10 px-4 py-2 font-bold text-[var(--saffron)] transition-all hover:scale-105 hover:bg-[var(--saffron)]/20 hover:border-[var(--saffron)] shadow-lg shadow-orange-500/5 hover:shadow-orange-500/20"
+                        >
+                            <Heart size={20} />
+                            <span>Donations Accepted</span>
+                        </Link>
+                        <button
+                            onClick={handleLogout}
+                            className="flex items-center gap-2 rounded-full bg-white/10 px-6 py-2 text-sm font-medium text-white transition hover:bg-white/20"
+                        >
+                            <LogOut size={16} />
+                            Logout
+                        </button>
+                    </div>
                 </div>
 
                 {/* Stats Cards */}
