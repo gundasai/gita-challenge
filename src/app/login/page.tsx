@@ -13,9 +13,9 @@ export default function LoginPage() {
     const { login } = useAuth();
     const router = useRouter();
     const [email, setEmail] = useState("");
-
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
+    const [isSigningIn, setIsSigningIn] = useState(false);
     const [isForgotPassword, setIsForgotPassword] = useState(false);
     const [resetMessage, setResetMessage] = useState("");
     const [isResetting, setIsResetting] = useState(false);
@@ -23,6 +23,7 @@ export default function LoginPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError("");
+        setIsSigningIn(true);
         try {
             console.log("Attempting login...");
             await login(email, password);
@@ -36,6 +37,7 @@ export default function LoginPage() {
             if (err.code === 'auth/user-not-found') msg = "No account found with this email.";
             if (err.code === 'auth/wrong-password') msg = "Incorrect password.";
             setError(msg);
+            setIsSigningIn(false);
         }
     };
 
@@ -206,9 +208,17 @@ export default function LoginPage() {
 
                     <button
                         type="submit"
-                        className="group relative flex w-full justify-center rounded bg-[var(--saffron)] px-4 py-2 text-sm font-medium text-white hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-[var(--saffron)] focus:ring-offset-2"
+                        disabled={isSigningIn}
+                        className="group relative flex w-full justify-center items-center gap-2 rounded bg-[var(--saffron)] px-4 py-2 text-sm font-medium text-white hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-[var(--saffron)] focus:ring-offset-2 disabled:opacity-70 disabled:cursor-not-allowed transition-all"
                     >
-                        Sign in
+                        {isSigningIn ? (
+                            <>
+                                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                                <span>Signing in...</span>
+                            </>
+                        ) : (
+                            "Sign in"
+                        )}
                     </button>
                 </form>
 

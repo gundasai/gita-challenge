@@ -135,11 +135,6 @@ export default function Home() {
   if (user && (canAccess || userRole === "admin")) {
     // Redirect pending users to waiting page
     if (userData?.status === 'pending' && userData?.institutionId) {
-      // Use window.location for full redirect to avoid issues, or router
-      // Since we are in a component, returning null and using useEffect is better, 
-      // but here we are in render logic. 
-      // Let's use a return statement with a redirect effect or just return the waiting component?
-      // Better to redirect.
       if (typeof window !== 'undefined') {
         window.location.href = "/waiting";
         return null;

@@ -409,6 +409,7 @@ export default function AdminDashboard() {
         const excelData = users.map((user, index) => ({
             'S.NO': index + 1,
             'Name': user.displayName || '',
+            'Age': user.age || '',
             'Gender': user.gender || '',
             'Email': user.email || '',
             'WhatsApp Number': user.whatsapp || '',

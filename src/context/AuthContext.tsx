@@ -9,7 +9,7 @@ interface AuthContextType {
     userData: any; // Using any for flexibility, strict type would be better
     userRole: string | null;
     loading: boolean;
-    signup: (email: string, password: string, displayName: string, whatsapp: string, company: string, city: string, gender: string, institutionId?: string) => Promise<UserCredential>;
+    signup: (email: string, password: string, displayName: string, whatsapp: string, company: string, city: string, gender: string, age: string, institutionId?: string) => Promise<UserCredential>;
     login: (email: string, password: string) => Promise<UserCredential>;
     logout: () => Promise<void>;
 }
@@ -23,10 +23,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [loading, setLoading] = useState(true);
 
     // Sign up with Email/Password
-    const signup = async (email: string, password: string, displayName: string, whatsapp: string, company: string, city: string, gender: string, institutionId?: string) => {
+    const signup = async (email: string, password: string, displayName: string, whatsapp: string, company: string, city: string, gender: string, age: string, institutionId?: string) => {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         await updateProfile(userCredential.user, { displayName });
-        await createUserDocument(userCredential.user, whatsapp, company, city, gender, institutionId);
+        await createUserDocument(userCredential.user, whatsapp, company, city, gender, age, institutionId);
         return userCredential;
     };
 
@@ -44,7 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     // Create User Document in Firestore
-    const createUserDocument = async (user: User, whatsapp?: string, company?: string, city?: string, gender?: string, institutionId?: string) => {
+    const createUserDocument = async (user: User, whatsapp?: string, company?: string, city?: string, gender?: string, age?: string, institutionId?: string) => {
         const userRef = doc(db, "users", user.uid);
         const userSnap = await getDoc(userRef);
 
@@ -61,6 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 company: company || "",
                 city: city || "",
                 gender: gender || "",
+                age: age ? parseInt(age) : null,
                 institutionId: institutionId || null,
                 status: status,
                 currentDay: 1,

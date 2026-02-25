@@ -40,7 +40,15 @@ export function useAccessControl(redirectToLogin: boolean = false) {
                 if (configDoc.exists()) {
                     const data = configDoc.data();
                     if (data.startDate) {
-                        const startDate = data.startDate.toDate ? data.startDate.toDate() : new Date(data.startDate);
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        const parseDate = (val: any) => {
+                            if (!val) return new Date();
+                            if (val.toDate) return val.toDate();
+                            if (val.seconds) return new Date(val.seconds * 1000);
+                            return new Date(val);
+                        };
+
+                        const startDate = parseDate(data.startDate);
                         const now = new Date();
 
                         // --- ALUMNI CHECK ---
@@ -49,16 +57,22 @@ export function useAccessControl(redirectToLogin: boolean = false) {
                         // Users created AFTER are New Batch / Current Students.
                         let cutoffDate = startDate;
                         if (data.registrationDate) {
-                            cutoffDate = data.registrationDate.toDate ? data.registrationDate.toDate() : new Date(data.registrationDate);
+                            cutoffDate = parseDate(data.registrationDate);
                         }
 
                         if (userData?.createdAt) {
-                            const userCreated = userData.createdAt.toDate ? userData.createdAt.toDate() : new Date(userData.createdAt);
+                            const userCreated = parseDate(userData.createdAt);
                             if (userCreated < cutoffDate) {
                                 setCanAccess(true);
                                 setChecking(false);
                                 return;
                             }
+                        } else if (userData) {
+                            // Target fallback: Legacy users might not have createdAt.
+                            // If they have userData but no createdAt, consider them alumni.
+                            setCanAccess(true);
+                            setChecking(false);
+                            return;
                         }
 
                         if (now >= startDate) {

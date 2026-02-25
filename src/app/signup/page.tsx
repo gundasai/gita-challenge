@@ -10,12 +10,14 @@ import { db } from "@/lib/firebase";
 
 export default function SignupPage() {
     const { signup, logout } = useAuth();
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const router = useRouter();
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [gender, setGender] = useState("");
+    const [age, setAge] = useState("");
     const [whatsapp, setWhatsapp] = useState("");
     const [company, setCompany] = useState("");
     const [city, setCity] = useState("");
@@ -95,6 +97,12 @@ export default function SignupPage() {
             errors.gender = "Please select your gender";
         }
 
+        // Age validation
+        const ageNum = parseInt(age);
+        if (!age || isNaN(ageNum) || ageNum < 5 || ageNum > 120) {
+            errors.age = "Please enter a valid age (5-120)";
+        }
+
         setValidationErrors(errors);
         return Object.keys(errors).length === 0;
     };
@@ -113,8 +121,7 @@ export default function SignupPage() {
 
         try {
             console.log("Attempting signup...");
-            console.log("Attempting signup...");
-            await signup(email, password, name, whatsapp, company, city, gender);
+            await signup(email, password, name, whatsapp, company, city, gender, age);
             console.log("Signup successful");
 
             if (hasStarted) {
@@ -130,6 +137,7 @@ export default function SignupPage() {
                 // Redirect to waiting page if not started
                 window.location.href = "/waiting";
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
             console.error("Signup Error:", err);
             setError("Failed to create account: " + err.message);
@@ -252,31 +260,60 @@ export default function SignupPage() {
 
 
                         {/* Gender Field */}
-                        <div>
-                            <label htmlFor="gender" className="sr-only">Gender</label>
-                            <select
-                                id="gender"
-                                name="gender"
-                                required
-                                className={`relative block w-full rounded border ${validationErrors.gender ? 'border-red-500' : 'border-white/10'} bg-black/20 px-3 py-2 text-[var(--foreground)] focus:border-[var(--saffron)] focus:outline-none focus:ring-1 focus:ring-[var(--saffron)] sm:text-sm ${!gender ? 'text-gray-500' : ''}`}
-                                value={gender}
-                                onChange={(e) => {
-                                    setGender(e.target.value);
-                                    if (validationErrors.gender) {
-                                        const errors = { ...validationErrors };
-                                        delete errors.gender;
-                                        setValidationErrors(errors);
-                                    }
-                                }}
-                            >
-                                <option value="" disabled>Gender</option>
-                                <option value="Male">Male</option>
-                                <option value="Female">Female</option>
-                                <option value="Others">Others</option>
-                            </select>
-                            {validationErrors.gender && (
-                                <p className="mt-1 text-xs text-red-400">{validationErrors.gender}</p>
-                            )}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label htmlFor="gender" className="sr-only">Gender</label>
+                                <select
+                                    id="gender"
+                                    name="gender"
+                                    required
+                                    className={`relative block w-full rounded border ${validationErrors.gender ? 'border-red-500' : 'border-white/10'} bg-black/20 px-3 py-2 text-[var(--foreground)] focus:border-[var(--saffron)] focus:outline-none focus:ring-1 focus:ring-[var(--saffron)] sm:text-sm ${!gender ? 'text-gray-500' : ''}`}
+                                    value={gender}
+                                    onChange={(e) => {
+                                        setGender(e.target.value);
+                                        if (validationErrors.gender) {
+                                            const errors = { ...validationErrors };
+                                            delete errors.gender;
+                                            setValidationErrors(errors);
+                                        }
+                                    }}
+                                >
+                                    <option value="" disabled>Gender</option>
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                    <option value="Others">Others</option>
+                                </select>
+                                {validationErrors.gender && (
+                                    <p className="mt-1 text-xs text-red-400">{validationErrors.gender}</p>
+                                )}
+                            </div>
+
+                            {/* Age Field */}
+                            <div>
+                                <label htmlFor="age" className="sr-only">Age</label>
+                                <input
+                                    id="age"
+                                    name="age"
+                                    type="number"
+                                    required
+                                    min={5}
+                                    max={120}
+                                    className={`relative block w-full rounded border ${validationErrors.age ? 'border-red-500' : 'border-white/10'} bg-black/20 px-3 py-2 text-[var(--foreground)] placeholder-gray-500 focus:border-[var(--saffron)] focus:outline-none focus:ring-1 focus:ring-[var(--saffron)] sm:text-sm`}
+                                    placeholder="Age"
+                                    value={age}
+                                    onChange={(e) => {
+                                        setAge(e.target.value);
+                                        if (validationErrors.age) {
+                                            const errors = { ...validationErrors };
+                                            delete errors.age;
+                                            setValidationErrors(errors);
+                                        }
+                                    }}
+                                />
+                                {validationErrors.age && (
+                                    <p className="mt-1 text-xs text-red-400">{validationErrors.age}</p>
+                                )}
+                            </div>
                         </div>
 
                         {/* WhatsApp Field */}

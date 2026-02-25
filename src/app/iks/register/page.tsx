@@ -16,10 +16,12 @@ export default function IKSRegisterPage() {
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [gender, setGender] = useState("");
+    const [age, setAge] = useState("");
     const [whatsapp, setWhatsapp] = useState("");
     const [city, setCity] = useState("");
 
     // Institution Specific
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [institutions, setInstitutions] = useState<any[]>([]);
     const [selectedInstitution, setSelectedInstitution] = useState("");
 
@@ -77,6 +79,11 @@ export default function IKSRegisterPage() {
         if (password !== confirmPassword) errors.confirmPassword = "Passwords do not match";
         if (!gender) errors.gender = "Please select your gender";
 
+        const ageNum = parseInt(age);
+        if (!age || isNaN(ageNum) || ageNum < 5 || ageNum > 120) {
+            errors.age = "Please enter a valid age (5-120)";
+        }
+
         setValidationErrors(errors);
         return Object.keys(errors).length === 0;
     };
@@ -104,7 +111,7 @@ export default function IKSRegisterPage() {
             const instObj = institutions.find(i => i.id === selectedInstitution);
             const companyName = instObj ? instObj.name : "Institution";
 
-            await signup(email, password, name, whatsapp, companyName, city, gender, selectedInstitution);
+            await signup(email, password, name, whatsapp, companyName, city, gender, age, selectedInstitution);
 
             if (hasStarted) {
                 try {
@@ -115,6 +122,7 @@ export default function IKSRegisterPage() {
             } else {
                 window.location.href = "/waiting";
             }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
             console.error("Signup Error:", err);
             let errorMessage = "Failed to create account. Please try again.";
@@ -241,18 +249,39 @@ export default function IKSRegisterPage() {
                         />
                         {validationErrors.name && <p className="mt-1 text-xs text-red-400">{validationErrors.name}</p>}
 
-                        <select
-                            required
-                            className={`relative block w-full rounded border ${validationErrors.gender ? 'border-red-500' : 'border-white/10'} bg-black/20 px-3 py-2 text-[var(--foreground)] focus:border-[var(--saffron)] focus:outline-none focus:ring-1 focus:ring-[var(--saffron)] sm:text-sm ${!gender ? 'text-gray-500' : ''}`}
-                            value={gender}
-                            onChange={(e) => setGender(e.target.value)}
-                        >
-                            <option value="" disabled>Gender</option>
-                            <option value="Male">Male</option>
-                            <option value="Female">Female</option>
-                            <option value="Others">Others</option>
-                        </select>
-                        {validationErrors.gender && <p className="mt-1 text-xs text-red-400">{validationErrors.gender}</p>}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label htmlFor="gender" className="sr-only">Gender</label>
+                                <select
+                                    required
+                                    className={`relative block w-full rounded border ${validationErrors.gender ? 'border-red-500' : 'border-white/10'} bg-black/20 px-3 py-2 text-[var(--foreground)] focus:border-[var(--saffron)] focus:outline-none focus:ring-1 focus:ring-[var(--saffron)] sm:text-sm ${!gender ? 'text-gray-500' : ''}`}
+                                    value={gender}
+                                    onChange={(e) => setGender(e.target.value)}
+                                >
+                                    <option value="" disabled>Gender</option>
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                    <option value="Others">Others</option>
+                                </select>
+                                {validationErrors.gender && <p className="mt-1 text-xs text-red-400">{validationErrors.gender}</p>}
+                            </div>
+
+                            <div>
+                                <label htmlFor="age" className="sr-only">Age</label>
+                                <input
+                                    id="age"
+                                    type="number"
+                                    required
+                                    min={5}
+                                    max={120}
+                                    className={`relative block w-full rounded border ${validationErrors.age ? 'border-red-500' : 'border-white/10'} bg-black/20 px-3 py-2 text-[var(--foreground)] placeholder-gray-500 focus:border-[var(--saffron)] focus:outline-none focus:ring-1 focus:ring-[var(--saffron)] sm:text-sm`}
+                                    placeholder="Age"
+                                    value={age}
+                                    onChange={(e) => setAge(e.target.value)}
+                                />
+                                {validationErrors.age && <p className="mt-1 text-xs text-red-400">{validationErrors.age}</p>}
+                            </div>
+                        </div>
 
                         <input
                             type="tel"
