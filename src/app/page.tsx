@@ -261,6 +261,12 @@ export default function Home() {
               <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
             </Link>
             <Link
+              href="/login"
+              className="rounded-full border border-[var(--saffron)]/30 bg-black/20 px-10 py-5 text-lg font-semibold text-[var(--saffron)] backdrop-blur-md transition-all hover:bg-[var(--saffron)]/10"
+            >
+              Sign In
+            </Link>
+            <Link
               href="#the-journey"
               className="rounded-full border border-white/10 bg-white/5 px-10 py-5 text-lg font-semibold text-white backdrop-blur-md transition-all hover:bg-white/10"
             >
